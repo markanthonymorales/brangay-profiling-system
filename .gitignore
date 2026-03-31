@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environment
+venv/
+.venv/
+env/
+
+# Database
+data/barangay_profiling.db
+data/barangay_profiling.db-wal
+data/barangay_profiling.db-shm
+
+# Logs
+data/app.log
+data/app.log.*
+
+# Backups
+data/backups/
+
+# Auto-generated reports
+data/reports/auto/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Generated assets (logo auto-generated on first run)
+assets/
+
+# Local Claude config
+.claude.local.md
