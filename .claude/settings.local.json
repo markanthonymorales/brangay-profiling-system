@@ -1,0 +1,37 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e \":*)",
+      "Bash(pip install:*)",
+      "Bash(where python:*)",
+      "Bash(where python3:*)",
+      "Bash(/c/Users/marka/AppData/Local/Microsoft/WindowsApps/python.exe -m pip install -r requirements.txt)",
+      "Read(//c/laragon/bin/python//**)",
+      "Bash(ls /c/Python*/python.exe)",
+      "Read(//c/Users/marka/AppData/Local/Programs/**)",
+      "Read(//c/ProgramData/anaconda3/**)",
+      "Bash(where.exe python:*)",
+      "Bash(/c/laragon/bin/python/python-3.13/python.exe --version)",
+      "Bash(/c/laragon/bin/python/python-3.13/python.exe -m pip install -r requirements.txt)",
+      "Bash(/c/laragon/bin/python/python-3.13/python.exe -m pip install sqlalchemy bcrypt)",
+      "Bash(/c/laragon/bin/python/python-3.13/python.exe -c \":*)",
+      "Bash(/c/laragon/bin/python/python-3.13/python.exe -m pip install reportlab)",
+      "Bash(/c/laragon/bin/python/python-3.13/python.exe -m pip install tkintermapview)",
+      "Bash(rm -f c:/laragon/www/brangay-profiling-system/data/barangay_profiling.db c:/laragon/www/brangay-profiling-system/data/app.log)",
+      "Bash(wc -l /c/laragon/www/brangay-profiling-system/services/*.py)",
+      "Bash(wc -l /c/laragon/www/brangay-profiling-system/ui/views/*.py)",
+      "Bash(grep -l \"def \" /c/laragon/www/brangay-profiling-system/services/*.py)",
+      "Bash(grep -c \"class\\\\|def \" /c/laragon/www/brangay-profiling-system/ui/views/*.py)",
+      "Bash(bc)",
+      "Bash(wc -l /c/laragon/www/brangay-profiling-system/**/*.py)",
+      "Bash(grep \"^def \" /c/laragon/www/brangay-profiling-system/services/*.py)",
+      "Bash(grep -c '\"\"barangays\"\"' /c/laragon/www/brangay-profiling-system/data/davao_barangays.json)",
+      "Bash(rm -rf c:/laragon/www/brangay-profiling-system/data/barangay_profiling.db c:/laragon/www/brangay-profiling-system/data/app.log* c:/laragon/www/brangay-profiling-system/data/backups c:/laragon/www/brangay-profiling-system/data/reports)",
+      "WebSearch",
+      "WebFetch(domain:www.citypopulation.de)",
+      "WebFetch(domain:en.wikipedia.org)",
+      "Bash(/c/laragon/bin/python/python-3.13/python.exe -m database.real_data)",
+      "WebFetch(domain:commons.wikimedia.org)"
+    ]
+  }
+}

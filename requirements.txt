@@ -1,0 +1,7 @@
+customtkinter>=5.2.0
+sqlalchemy>=2.0
+bcrypt>=4.0
+pillow>=10.0
+matplotlib>=3.8
+reportlab>=4.0
+tkintermapview>=1.29
