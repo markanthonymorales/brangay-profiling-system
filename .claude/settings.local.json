@@ -31,7 +31,16 @@
       "WebFetch(domain:www.citypopulation.de)",
       "WebFetch(domain:en.wikipedia.org)",
       "Bash(/c/laragon/bin/python/python-3.13/python.exe -m database.real_data)",
-      "WebFetch(domain:commons.wikimedia.org)"
+      "WebFetch(domain:commons.wikimedia.org)",
+      "Bash(xargs grep:*)",
+      "Read(//c/laragon/bin/python/**)",
+      "Bash(echo $PATH)",
+      "Bash(ls /c/Users/marka/AppData/Local/Programs/Python/*/python.exe)",
+      "Bash(/c/laragon/bin/python/python-3.13/python.exe -c \"print\\(''hello''\\)\")",
+      "WebFetch(domain:davaocity.gov.ph)",
+      "Bash(rm -rf c:/laragon/www/brangay-profiling-system/data/barangay_profiling.db c:/laragon/www/brangay-profiling-system/data/app.log*)",
+      "Read(//tmp/**)",
+      "Bash(python3 -c \":*)"
     ]
   }
 }

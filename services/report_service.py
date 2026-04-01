@@ -96,7 +96,7 @@ def _get_latest_record(session, model, barangay_id: int):
 def get_barangay_full_profile(barangay_id: int) -> dict | None:
     session = get_session()
     try:
-        brgy = session.query(Barangay).get(barangay_id)
+        brgy = session.get(Barangay, barangay_id)
         if not brgy:
             return None
 
@@ -257,7 +257,7 @@ def get_barangay_full_profile(barangay_id: int) -> dict | None:
 def get_district_report(district_id: int) -> dict | None:
     session = get_session()
     try:
-        district = session.query(District).get(district_id)
+        district = session.get(District, district_id)
         if not district:
             return None
 
@@ -436,7 +436,7 @@ def get_comparative_report(barangay_ids: list[int]) -> dict:
         barangays_data = []
 
         for bid in barangay_ids:
-            brgy = session.query(Barangay).get(bid)
+            brgy = session.get(Barangay, bid)
             if not brgy:
                 continue
 

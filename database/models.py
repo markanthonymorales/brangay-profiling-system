@@ -13,6 +13,20 @@ class TimestampMixin:
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
 
+# ── Departments ───────────────────────────────────────────────
+
+class Department(TimestampMixin, Base):
+    __tablename__ = "departments"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(200), nullable=False, unique=True)
+    level = Column(String(20), nullable=False, default="city")  # city / district / barangay
+    district_id = Column(Integer, ForeignKey("districts.id"), nullable=True)
+    barangay_id = Column(Integer, ForeignKey("barangays.id"), nullable=True)
+
+    users = relationship("User", back_populates="department")
+
+
 # ── Users & Auth ──────────────────────────────────────────────
 
 class User(TimestampMixin, Base):
@@ -25,8 +39,29 @@ class User(TimestampMixin, Base):
     role = Column(String(20), nullable=False, default="viewer")
     is_active = Column(Boolean, default=True, nullable=False)
     must_change_password = Column(Boolean, default=False, nullable=False)
+    department_id = Column(Integer, ForeignKey("departments.id"), nullable=True)
 
+    department = relationship("Department", back_populates="users")
     audit_logs = relationship("AuditLog", back_populates="user")
+
+
+class Submission(TimestampMixin, Base):
+    __tablename__ = "submissions"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    submitted_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    reviewed_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    table_name = Column(String(50), nullable=False)
+    barangay_id = Column(Integer, ForeignKey("barangays.id"), nullable=True)
+    year = Column(Integer, nullable=True)
+    record_data = Column(Text, nullable=False)  # JSON
+    status = Column(String(20), nullable=False, default="pending")  # draft/pending/approved/rejected
+    review_notes = Column(Text, nullable=True)
+    reviewed_at = Column(DateTime, nullable=True)
+
+    submitter = relationship("User", foreign_keys=[submitted_by])
+    reviewer = relationship("User", foreign_keys=[reviewed_by])
+    barangay = relationship("Barangay")
 
 
 class AuditLog(Base):
@@ -273,3 +308,34 @@ class TrafficIncident(TimestampMixin, Base):
     description = Column(Text, nullable=True)
 
     barangay = relationship("Barangay", back_populates="traffic_incidents")
+
+
+# ── Notifications ────────────────────────────────────────────
+
+class Notification(TimestampMixin, Base):
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    type = Column(String(50), nullable=False)
+    title = Column(String(200), nullable=False)
+    message = Column(Text, nullable=True)
+    severity = Column(String(20), nullable=False, default="info")  # info/warning/error
+    is_read = Column(Boolean, default=False, nullable=False)
+
+    user = relationship("User")
+
+
+# ── Retry Queue ──────────────────────────────────────────────
+
+class RetryQueue(TimestampMixin, Base):
+    __tablename__ = "retry_queue"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    operation = Column(String(100), nullable=False)
+    table_name = Column(String(50), nullable=False)
+    data = Column(Text, nullable=True)  # JSON
+    error_message = Column(Text, nullable=True)
+    attempts = Column(Integer, default=0, nullable=False)
+    max_attempts = Column(Integer, default=3, nullable=False)
+    status = Column(String(20), nullable=False, default="pending")  # pending/completed/failed

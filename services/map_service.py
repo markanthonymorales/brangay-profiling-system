@@ -4,7 +4,7 @@ from sqlalchemy import func
 from database.db import get_session
 from database.models import (
     Barangay, District, PopulationRecord, CrimeIncident,
-    TrafficIncident, IncomeData, Utility
+    TrafficIncident, IncomeData, Utility, WasteManagement, Business
 )
 
 logger = logging.getLogger(__name__)
@@ -40,6 +40,46 @@ def get_map_markers() -> list[dict]:
                 .scalar()
             ) or 0
 
+            # Traffic count (last 12 months)
+            traffic_count = (
+                session.query(func.count(TrafficIncident.id))
+                .filter(TrafficIncident.barangay_id == b.id, TrafficIncident.date_occurred >= cutoff)
+                .scalar()
+            ) or 0
+
+            # Waste coverage
+            waste_rec = (
+                session.query(WasteManagement)
+                .filter_by(barangay_id=b.id)
+                .order_by(WasteManagement.year.desc())
+                .first()
+            )
+            waste_coverage = waste_rec.coverage_pct if waste_rec and waste_rec.coverage_pct is not None else None
+
+            # Business count
+            business_count = (
+                session.query(func.count(Business.id))
+                .filter(Business.barangay_id == b.id, Business.is_active == True)
+                .scalar()
+            ) or 0
+
+            # Utility average coverage
+            util_rec = (
+                session.query(Utility)
+                .filter_by(barangay_id=b.id)
+                .order_by(Utility.year.desc())
+                .first()
+            )
+            utility_avg = None
+            if util_rec:
+                coverages = [
+                    v for v in [util_rec.water_coverage_pct, util_rec.power_coverage_pct,
+                                util_rec.internet_coverage_pct]
+                    if v is not None
+                ]
+                if coverages:
+                    utility_avg = sum(coverages) / len(coverages)
+
             result.append({
                 "id": b.id,
                 "name": b.name,
@@ -50,6 +90,10 @@ def get_map_markers() -> list[dict]:
                 "population": pop_rec.total_population if pop_rec else None,
                 "crime_count": crime_count,
                 "classification": b.classification or "N/A",
+                "traffic_count": traffic_count,
+                "waste_coverage": waste_coverage,
+                "business_count": business_count,
+                "utility_avg": utility_avg,
             })
         return result
     finally:
@@ -59,7 +103,7 @@ def get_map_markers() -> list[dict]:
 def get_barangay_map_info(barangay_id: int) -> dict | None:
     session = get_session()
     try:
-        b = session.query(Barangay).get(barangay_id)
+        b = session.get(Barangay, barangay_id)
         if not b:
             return None
 

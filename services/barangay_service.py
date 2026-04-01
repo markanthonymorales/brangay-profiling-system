@@ -40,7 +40,7 @@ def get_all_barangays() -> list[dict]:
 def get_barangay_by_id(barangay_id: int) -> dict | None:
     session = get_session()
     try:
-        b = session.query(Barangay).get(barangay_id)
+        b = session.get(Barangay, barangay_id)
         if b is None:
             return None
         return {

@@ -9,8 +9,9 @@ from ui.components.form_fields import LabeledEntry, LabeledDropdown
 from ui.dialogs.message_dialog import MessageDialog
 from ui.dialogs.confirm_dialog import ConfirmDialog
 from auth.auth_manager import AuthManager
-from auth.roles import Role
+from auth.roles import Role, ALL_ROLES
 from services.user_service import create_user, update_user, deactivate_user, activate_user, list_users
+from services.department_service import list_departments
 
 
 class UserMgmtView(ctk.CTkFrame):
@@ -38,8 +39,9 @@ class UserMgmtView(ctk.CTkFrame):
         # Table
         columns = [
             {"key": "username", "title": "Username", "width": 2},
-            {"key": "full_name", "title": "Full Name", "width": 3},
-            {"key": "role", "title": "Role", "width": 1},
+            {"key": "full_name", "title": "Full Name", "width": 2},
+            {"key": "role", "title": "Role", "width": 2},
+            {"key": "department_name", "title": "Department", "width": 2},
             {"key": "is_active", "title": "Status", "width": 1},
             {"key": "created_at", "title": "Created", "width": 2},
         ]
@@ -52,7 +54,7 @@ class UserMgmtView(ctk.CTkFrame):
     def _show_add_dialog(self):
         dialog = ctk.CTkToplevel(self)
         dialog.title("Add User")
-        dialog.geometry("400x380")
+        dialog.geometry("440x480")
         dialog.resizable(False, False)
         dialog.transient(self)
         dialog.grab_set()
@@ -60,30 +62,42 @@ class UserMgmtView(ctk.CTkFrame):
         ctk.CTkLabel(dialog, text="New User", font=(FONT_FAMILY, 16, "bold"),
                      text_color=TEXT_PRIMARY).pack(pady=(20, 15))
 
-        username = LabeledEntry(dialog, label="Username", required=True)
-        username.pack(fill="x", padx=30, pady=2)
+        scroll = ctk.CTkScrollableFrame(dialog, fg_color="transparent")
+        scroll.pack(fill="both", expand=True, padx=20)
 
-        full_name = LabeledEntry(dialog, label="Full Name", required=True)
-        full_name.pack(fill="x", padx=30, pady=2)
+        username = LabeledEntry(scroll, label="Username", required=True)
+        username.pack(fill="x", pady=2)
 
-        password = LabeledEntry(dialog, label="Password", required=True)
-        password.pack(fill="x", padx=30, pady=2)
+        full_name = LabeledEntry(scroll, label="Full Name", required=True)
+        full_name.pack(fill="x", pady=2)
 
-        role = LabeledDropdown(dialog, label="Role", values=["encoder", "viewer", "admin"])
-        role.pack(fill="x", padx=30, pady=2)
+        password = LabeledEntry(scroll, label="Password", required=True)
+        password.pack(fill="x", pady=2)
+
+        role = LabeledDropdown(scroll, label="Role", values=ALL_ROLES)
+        role.pack(fill="x", pady=2)
+
+        # Department dropdown
+        depts = list_departments()
+        dept_names = ["None"] + [d["name"] for d in depts]
+        dept_map = {d["name"]: d["id"] for d in depts}
+        department = LabeledDropdown(scroll, label="Department", values=dept_names)
+        department.pack(fill="x", pady=2)
 
         error_label = ctk.CTkLabel(dialog, text="", font=(FONT_FAMILY, FONT_SIZE_SMALL),
                                    text_color=DANGER_COLOR)
-        error_label.pack(pady=5)
+        error_label.pack(pady=3)
 
         def do_create():
             if not username.get() or not full_name.get() or not password.get():
                 error_label.configure(text="All fields are required.")
                 return
+            dept_id = dept_map.get(department.get())
             user = self._auth.get_current_user()
             success, msg = create_user(
                 username.get(), password.get(), full_name.get(),
                 role.get(), user.id if user else 0,
+                department_id=dept_id,
             )
             if success:
                 dialog.destroy()
@@ -108,7 +122,7 @@ class UserMgmtView(ctk.CTkFrame):
     def _show_edit_dialog(self, row_data: dict):
         dialog = ctk.CTkToplevel(self)
         dialog.title(f"Edit User: {row_data['username']}")
-        dialog.geometry("400x320")
+        dialog.geometry("440x400")
         dialog.resizable(False, False)
         dialog.transient(self)
         dialog.grab_set()
@@ -120,17 +134,27 @@ class UserMgmtView(ctk.CTkFrame):
         full_name.set(row_data["full_name"])
         full_name.pack(fill="x", padx=30, pady=2)
 
-        role = LabeledDropdown(dialog, label="Role", values=["admin", "encoder", "viewer"])
+        role = LabeledDropdown(dialog, label="Role", values=ALL_ROLES)
         role.set(row_data["role"])
         role.pack(fill="x", padx=30, pady=2)
+
+        depts = list_departments()
+        dept_names = ["None"] + [d["name"] for d in depts]
+        dept_map = {d["name"]: d["id"] for d in depts}
+        department = LabeledDropdown(dialog, label="Department", values=dept_names)
+        current_dept = row_data.get("department_name", "None")
+        department.set(current_dept if current_dept in dept_names else "None")
+        department.pack(fill="x", padx=30, pady=2)
 
         btn_frame = ctk.CTkFrame(dialog, fg_color="transparent")
         btn_frame.pack(pady=20)
 
         def do_update():
+            dept_id = dept_map.get(department.get())
             user = self._auth.get_current_user()
             success, msg = update_user(
                 row_data["id"], full_name=full_name.get(), role=role.get(),
+                department_id=dept_id,
                 updated_by_user_id=user.id if user else 0,
             )
             dialog.destroy()
@@ -167,6 +191,10 @@ class UserMgmtView(ctk.CTkFrame):
             ctk.CTkButton(btn_frame, text="Activate", command=do_activate,
                           font=(FONT_FAMILY, FONT_SIZE_NORMAL),
                           fg_color=ACCENT_COLOR, text_color=TEXT_LIGHT, width=100, height=35).pack(side="left", padx=5)
+
+        ctk.CTkButton(btn_frame, text="Cancel", command=dialog.destroy,
+                      font=(FONT_FAMILY, FONT_SIZE_NORMAL),
+                      fg_color="gray", text_color=TEXT_LIGHT, width=100, height=35).pack(side="left", padx=5)
 
         dialog.after(100, dialog.focus_force)
 

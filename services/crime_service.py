@@ -21,7 +21,7 @@ def save_crime_incident(barangay_id: int, data: dict, user_id: int) -> tuple[boo
     try:
         incident_id = data.pop("id", None)
         if incident_id:
-            record = session.query(CrimeIncident).get(incident_id)
+            record = session.get(CrimeIncident, incident_id)
             if not record:
                 return False, "Incident not found."
             old_values = {
@@ -52,7 +52,7 @@ def save_crime_incident(barangay_id: int, data: dict, user_id: int) -> tuple[boo
 def delete_crime_incident(incident_id: int, user_id: int) -> tuple[bool, str]:
     session = get_session()
     try:
-        record = session.query(CrimeIncident).get(incident_id)
+        record = session.get(CrimeIncident, incident_id)
         if not record:
             return False, "Incident not found."
         old_values = {"crime_type": record.crime_type, "barangay_id": record.barangay_id}
@@ -87,6 +87,7 @@ def get_crime_incidents(barangay_id: int | None = None, crime_type: str | None =
             {
                 "id": r.id, "barangay_id": r.barangay_id,
                 "barangay_name": r.barangay.name,
+                "district_name": r.barangay.district.name if r.barangay.district else "",
                 "crime_type": r.crime_type, "severity": r.severity,
                 "date_occurred": r.date_occurred.strftime("%Y-%m-%d") if r.date_occurred else "",
                 "status": r.status, "description": r.description or "",
@@ -104,7 +105,7 @@ def save_traffic_incident(barangay_id: int, data: dict, user_id: int) -> tuple[b
     try:
         incident_id = data.pop("id", None)
         if incident_id:
-            record = session.query(TrafficIncident).get(incident_id)
+            record = session.get(TrafficIncident, incident_id)
             if not record:
                 return False, "Incident not found."
             old_values = {
@@ -135,7 +136,7 @@ def save_traffic_incident(barangay_id: int, data: dict, user_id: int) -> tuple[b
 def delete_traffic_incident(incident_id: int, user_id: int) -> tuple[bool, str]:
     session = get_session()
     try:
-        record = session.query(TrafficIncident).get(incident_id)
+        record = session.get(TrafficIncident, incident_id)
         if not record:
             return False, "Incident not found."
         old_values = {"incident_type": record.incident_type, "barangay_id": record.barangay_id}
@@ -170,6 +171,7 @@ def get_traffic_incidents(barangay_id: int | None = None, incident_type: str | N
             {
                 "id": r.id, "barangay_id": r.barangay_id,
                 "barangay_name": r.barangay.name,
+                "district_name": r.barangay.district.name if r.barangay.district else "",
                 "incident_type": r.incident_type, "severity": r.severity,
                 "date_occurred": r.date_occurred.strftime("%Y-%m-%d") if r.date_occurred else "",
                 "status": r.status, "description": r.description or "",
@@ -310,7 +312,7 @@ def get_high_risk_barangays(risk_type: str = "crime", limit: int = 20) -> list[d
         rows = query.all()
         result = []
         for brgy_id, brgy_name, count in rows:
-            brgy = session.query(Barangay).get(brgy_id)
+            brgy = session.get(Barangay, brgy_id)
             district_name = brgy.district.name if brgy else ""
 
             # Most common type

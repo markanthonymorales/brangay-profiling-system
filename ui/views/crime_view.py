@@ -301,6 +301,15 @@ class CrimeView(ctk.CTkFrame):
 
         # Pre-fill for edit
         if is_edit:
+            # Set correct district and barangay
+            edit_district = existing.get("district_name", "")
+            edit_barangay = existing.get("barangay_name", "")
+            if edit_district and edit_district in district_names:
+                d_district.set(edit_district)
+                on_district_sel(edit_district)
+                if edit_barangay:
+                    d_barangay.set(edit_barangay)
+
             d_type.set(existing.get(type_key, ""))
             d_severity.set(existing.get("severity", "low"))
             d_date.set(existing.get("date_occurred", ""))

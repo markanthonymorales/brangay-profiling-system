@@ -10,7 +10,7 @@ from database.models import (
     User, District, Barangay, PopulationRecord, ResidentCategory,
     IncomeData, Business, Utility, LandType, WasteManagement,
     FoodSource, GovernmentFacility, ReligiousDemographic,
-    CrimeIncident, TrafficIncident, AuditLog,
+    CrimeIncident, TrafficIncident, AuditLog, RetryQueue,
 )
 
 logger = logging.getLogger(__name__)
@@ -368,3 +368,119 @@ def get_last_auto_report() -> dict | None:
         "size_mb": round(os.path.getsize(path) / (1024 * 1024), 2),
         "created": datetime.fromtimestamp(os.path.getmtime(path)).strftime("%Y-%m-%d %H:%M:%S"),
     }
+
+
+# ── Retry Queue ──────────────────────────────────────────────
+
+def add_to_retry_queue(operation: str, table_name: str, data: str,
+                       error: str) -> tuple[bool, str]:
+    """Add a failed operation to the retry queue."""
+    import json
+    session = get_session()
+    try:
+        entry = RetryQueue(
+            operation=operation,
+            table_name=table_name,
+            data=data if isinstance(data, str) else json.dumps(data, default=str),
+            error_message=error,
+            attempts=0,
+            max_attempts=3,
+            status="pending",
+        )
+        session.add(entry)
+        session.commit()
+        logger.info(f"Added to retry queue: {operation} on {table_name} (id={entry.id})")
+        return True, f"Added to retry queue (id={entry.id})"
+    except Exception as e:
+        session.rollback()
+        logger.error(f"Failed to add to retry queue: {e}")
+        return False, str(e)
+    finally:
+        session.close()
+
+
+def process_retry_queue() -> tuple[bool, str]:
+    """Process pending items in the retry queue."""
+    import importlib
+    import json
+
+    session = get_session()
+    try:
+        pending = (
+            session.query(RetryQueue)
+            .filter(RetryQueue.status == "pending", RetryQueue.attempts < RetryQueue.max_attempts)
+            .order_by(RetryQueue.created_at)
+            .all()
+        )
+
+        if not pending:
+            return True, "No pending items in retry queue."
+
+        processed = 0
+        failed = 0
+        for item in pending:
+            item.attempts += 1
+            try:
+                # Attempt to re-run the operation
+                # Operations are expected to be module_path.function_name format
+                parts = item.operation.rsplit(".", 1)
+                if len(parts) == 2:
+                    module = importlib.import_module(parts[0])
+                    func = getattr(module, parts[1])
+                    data = json.loads(item.data) if item.data else {}
+                    success, msg = func(**data)
+                    if success:
+                        item.status = "completed"
+                        processed += 1
+                    else:
+                        item.error_message = msg
+                        if item.attempts >= item.max_attempts:
+                            item.status = "failed"
+                        failed += 1
+                else:
+                    item.error_message = f"Invalid operation format: {item.operation}"
+                    if item.attempts >= item.max_attempts:
+                        item.status = "failed"
+                    failed += 1
+            except Exception as e:
+                item.error_message = str(e)
+                if item.attempts >= item.max_attempts:
+                    item.status = "failed"
+                failed += 1
+
+            session.commit()
+
+        return True, f"Processed {processed} items, {failed} failed out of {len(pending)} pending."
+    except Exception as e:
+        session.rollback()
+        logger.error(f"Failed to process retry queue: {e}")
+        return False, str(e)
+    finally:
+        session.close()
+
+
+def get_retry_queue(status: str | None = None, limit: int = 50) -> list[dict]:
+    """Get items from the retry queue."""
+    session = get_session()
+    try:
+        query = session.query(RetryQueue).order_by(RetryQueue.created_at.desc())
+        if status:
+            query = query.filter(RetryQueue.status == status)
+
+        results = query.limit(limit).all()
+        return [
+            {
+                "id": r.id,
+                "operation": r.operation,
+                "table_name": r.table_name,
+                "error_message": r.error_message or "",
+                "attempts": r.attempts,
+                "max_attempts": r.max_attempts,
+                "status": r.status,
+                "created_at": r.created_at.strftime("%Y-%m-%d %H:%M") if r.created_at else "",
+                "updated_at": r.updated_at.strftime("%Y-%m-%d %H:%M") if r.updated_at else "",
+            }
+            for r in results
+        ]
+    finally:
+        session.close()
