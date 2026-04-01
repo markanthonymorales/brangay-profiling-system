@@ -2,13 +2,14 @@ import customtkinter as ctk
 from ui.theme import (
     FONT_FAMILY, FONT_SIZE_NORMAL, FONT_SIZE_SMALL, FONT_SIZE_TITLE,
     TEXT_PRIMARY, TEXT_SECONDARY, TEXT_LIGHT, PRIMARY_COLOR, ACCENT_COLOR,
-    WARNING_COLOR, SUCCESS_COLOR,
+    WARNING_COLOR, SUCCESS_COLOR, DANGER_COLOR,
     CARD_BG, BG_COLOR, PADDING_LARGE, PADDING_NORMAL,
 )
 from ui.components.chart_widget import ChartWidget
 from services.forecast_service import (
     forecast_population, forecast_utility_demand,
     forecast_infrastructure_needs, get_all_barangays_for_forecast,
+    forecast_food_supply, forecast_transportation, forecast_public_safety,
 )
 
 
@@ -74,6 +75,45 @@ class ForecastView(ctk.CTkFrame):
         self._infra_chart = ChartWidget(infra_tab, figsize=(7, 3))
         self._infra_chart.pack(fill="both", expand=True, padx=PADDING_NORMAL, pady=(0, PADDING_NORMAL))
 
+        # Food Supply tab
+        food_tab = self._tabview.add("Food Supply")
+        self._food_trend_label = ctk.CTkLabel(
+            food_tab, text="", font=(FONT_FAMILY, FONT_SIZE_NORMAL), text_color=TEXT_SECONDARY,
+        )
+        self._food_trend_label.pack(anchor="w", padx=PADDING_NORMAL, pady=(PADDING_NORMAL, 5))
+        self._food_status_label = ctk.CTkLabel(
+            food_tab, text="", font=(FONT_FAMILY, FONT_SIZE_SMALL), text_color=TEXT_SECONDARY,
+        )
+        self._food_status_label.pack(anchor="w", padx=PADDING_NORMAL, pady=(0, 5))
+        self._food_chart = ChartWidget(food_tab, figsize=(7, 3))
+        self._food_chart.pack(fill="both", expand=True, padx=PADDING_NORMAL, pady=(0, PADDING_NORMAL))
+
+        # Transportation tab
+        trans_tab = self._tabview.add("Transportation")
+        self._trans_trend_label = ctk.CTkLabel(
+            trans_tab, text="", font=(FONT_FAMILY, FONT_SIZE_NORMAL), text_color=TEXT_SECONDARY,
+        )
+        self._trans_trend_label.pack(anchor="w", padx=PADDING_NORMAL, pady=(PADDING_NORMAL, 5))
+        self._trans_status_label = ctk.CTkLabel(
+            trans_tab, text="", font=(FONT_FAMILY, FONT_SIZE_SMALL), text_color=TEXT_SECONDARY,
+        )
+        self._trans_status_label.pack(anchor="w", padx=PADDING_NORMAL, pady=(0, 5))
+        self._trans_chart = ChartWidget(trans_tab, figsize=(7, 3))
+        self._trans_chart.pack(fill="both", expand=True, padx=PADDING_NORMAL, pady=(0, PADDING_NORMAL))
+
+        # Public Safety tab
+        safety_tab = self._tabview.add("Public Safety")
+        self._safety_trend_label = ctk.CTkLabel(
+            safety_tab, text="", font=(FONT_FAMILY, FONT_SIZE_NORMAL), text_color=TEXT_SECONDARY,
+        )
+        self._safety_trend_label.pack(anchor="w", padx=PADDING_NORMAL, pady=(PADDING_NORMAL, 5))
+        self._safety_status_label = ctk.CTkLabel(
+            safety_tab, text="", font=(FONT_FAMILY, FONT_SIZE_SMALL), text_color=TEXT_SECONDARY,
+        )
+        self._safety_status_label.pack(anchor="w", padx=PADDING_NORMAL, pady=(0, 5))
+        self._safety_chart = ChartWidget(safety_tab, figsize=(7, 3))
+        self._safety_chart.pack(fill="both", expand=True, padx=PADDING_NORMAL, pady=(0, PADDING_NORMAL))
+
     def _load_barangays(self):
         self._barangays = get_all_barangays_for_forecast()
         names = [b["name"] for b in self._barangays]
@@ -119,6 +159,47 @@ class ForecastView(ctk.CTkFrame):
             self._infra_chart, self._infra_trend_label, infra_data,
             title=f"Infrastructure Demand Index (Facilities: {facility_count})",
             ylabel="Demand Index (%)",
+        )
+
+        # Food supply forecast
+        food_data = forecast_food_supply(bid)
+        gap = food_data.get("demand_gap", "balanced")
+        gap_colors = {"surplus": SUCCESS_COLOR, "balanced": PRIMARY_COLOR, "deficit": DANGER_COLOR}
+        self._food_status_label.configure(
+            text=f"Demand Gap: {gap.capitalize()} — {food_data.get('notes', '')}",
+            text_color=gap_colors.get(gap, TEXT_SECONDARY),
+        )
+        self._render_forecast_chart(
+            self._food_chart, self._food_trend_label, food_data,
+            title="Food Supply Demand Index", ylabel="Demand Index",
+        )
+
+        # Transportation forecast
+        trans_data = forecast_transportation(bid)
+        congestion = trans_data.get("congestion_level", "low")
+        cong_colors = {"low": SUCCESS_COLOR, "moderate": WARNING_COLOR, "high": DANGER_COLOR, "critical": DANGER_COLOR}
+        recs = trans_data.get("recommended_infrastructure", [])
+        rec_text = " | ".join(recs) if recs else "No recommendations"
+        self._trans_status_label.configure(
+            text=f"Congestion: {congestion.capitalize()} — {rec_text}",
+            text_color=cong_colors.get(congestion, TEXT_SECONDARY),
+        )
+        self._render_forecast_chart(
+            self._trans_chart, self._trans_trend_label, trans_data,
+            title="Transportation Congestion Index", ylabel="Congestion Index",
+        )
+
+        # Public safety forecast
+        safety_data = forecast_public_safety(bid)
+        level = safety_data.get("safety_level", "safe")
+        level_colors = {"safe": SUCCESS_COLOR, "moderate": WARNING_COLOR, "at_risk": DANGER_COLOR, "critical": DANGER_COLOR}
+        self._safety_status_label.configure(
+            text=f"Safety: {level.capitalize()} | {safety_data.get('police_ratio', 'N/A')} | Facility gap: {safety_data.get('facility_gap', 0)}",
+            text_color=level_colors.get(level, TEXT_SECONDARY),
+        )
+        self._render_forecast_chart(
+            self._safety_chart, self._safety_trend_label, safety_data,
+            title="Public Safety Crime Rate Index", ylabel="Crime Rate (per 10K)",
         )
 
     def _render_forecast_chart(self, chart_widget: ChartWidget,

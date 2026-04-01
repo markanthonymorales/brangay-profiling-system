@@ -355,3 +355,168 @@ def generate_action_plan(barangay_id: int) -> dict | None:
         }
     finally:
         session.close()
+
+
+def generate_crime_prevention_plan(barangay_id: int) -> dict | None:
+    """Generate a crime prevention plan with patrol schedules, CCTV recs, and community programs."""
+    session = get_session()
+    try:
+        brgy = session.get(Barangay, barangay_id)
+        if not brgy:
+            return None
+
+        cutoff_1yr = date.today() - timedelta(days=365)
+        cutoff_2yr = date.today() - timedelta(days=730)
+
+        # Crime summary
+        recent_crimes = (
+            session.query(CrimeIncident)
+            .filter(CrimeIncident.barangay_id == barangay_id,
+                    CrimeIncident.date_occurred >= cutoff_1yr)
+            .all()
+        )
+        prev_crimes = (
+            session.query(CrimeIncident)
+            .filter(CrimeIncident.barangay_id == barangay_id,
+                    CrimeIncident.date_occurred >= cutoff_2yr,
+                    CrimeIncident.date_occurred < cutoff_1yr)
+            .all()
+        )
+
+        total_recent = len(recent_crimes)
+        total_prev = len(prev_crimes)
+
+        # Trend
+        if total_prev > 0:
+            trend_pct = round(((total_recent - total_prev) / total_prev) * 100, 1)
+        else:
+            trend_pct = 0.0
+
+        if trend_pct > 10:
+            trend = "increasing"
+        elif trend_pct < -10:
+            trend = "decreasing"
+        else:
+            trend = "stable"
+
+        # Top types
+        type_counts = {}
+        for c in recent_crimes:
+            type_counts[c.crime_type] = type_counts.get(c.crime_type, 0) + 1
+        top_types = sorted(type_counts.items(), key=lambda x: x[1], reverse=True)[:5]
+
+        crime_summary = {
+            "total_incidents": total_recent,
+            "top_types": [{"type": t, "count": c} for t, c in top_types],
+            "trend": trend,
+            "trend_pct": trend_pct,
+        }
+
+        # Patrol schedule
+        patrol_schedule = [
+            {
+                "shift": "Morning (6AM-2PM)",
+                "priority": "medium",
+                "focus_areas": ["School zones", "Market areas", "Public parks"],
+            },
+            {
+                "shift": "Afternoon (2PM-10PM)",
+                "priority": "high" if total_recent >= 10 else "medium",
+                "focus_areas": ["Commercial areas", "Transport terminals", "Busy intersections"],
+            },
+            {
+                "shift": "Night (10PM-6AM)",
+                "priority": "high",
+                "focus_areas": ["Dark alleys and unlit streets", "Residential perimeters", "Establishments"],
+            },
+        ]
+
+        # CCTV recommendations
+        cctv_recommendations = []
+        if total_recent >= 5:
+            cctv_recommendations.append({
+                "location_desc": "Main entry/exit points of the barangay",
+                "priority": "high",
+                "reason": f"High traffic area with {total_recent} incidents in 12 months",
+            })
+        if type_counts.get("theft", 0) >= 2 or type_counts.get("robbery", 0) >= 2:
+            cctv_recommendations.append({
+                "location_desc": "Commercial and market areas",
+                "priority": "high",
+                "reason": "Theft/robbery hotspot",
+            })
+        if total_recent >= 3:
+            cctv_recommendations.append({
+                "location_desc": "Barangay hall and public facilities perimeter",
+                "priority": "medium",
+                "reason": "Public safety monitoring",
+            })
+
+        # Community programs
+        community_programs = []
+        program_triggers = {
+            "drugs": {
+                "name": "Anti-Drug Awareness & Rehabilitation Referral",
+                "target_group": "At-risk youth and affected families",
+                "description": "Partner with PDEA and DSWD for drug awareness seminars and rehabilitation program referrals.",
+            },
+            "theft": {
+                "name": "Livelihood Training Program",
+                "target_group": "Unemployed and underemployed residents",
+                "description": "Skills training and micro-enterprise support to address economic roots of theft.",
+            },
+            "robbery": {
+                "name": "Economic Development & Livelihood Support",
+                "target_group": "Low-income households",
+                "description": "DSWD coordination for livelihood grants and employment assistance.",
+            },
+            "assault": {
+                "name": "Conflict Resolution & Mediation Program",
+                "target_group": "Community members and families",
+                "description": "Barangay-level conflict resolution training and community mediation services.",
+            },
+            "domestic_violence": {
+                "name": "VAWC Support & Family Welfare",
+                "target_group": "Victims and at-risk families",
+                "description": "Strengthen VAWC desk, partner with DSWD for counseling and shelter services.",
+            },
+        }
+
+        for crime_type, count in type_counts.items():
+            ct_lower = crime_type.lower()
+            for trigger_key, program in program_triggers.items():
+                if trigger_key in ct_lower and count >= 2:
+                    prog = dict(program)
+                    prog["triggered_by"] = f"{crime_type} ({count} incidents)"
+                    community_programs.append(prog)
+                    break
+
+        # Always add neighborhood watch if crime count >= 5
+        if total_recent >= 5:
+            community_programs.append({
+                "name": "Neighborhood Watch & Barangay Tanod Strengthening",
+                "target_group": "All community members",
+                "description": "Organize block-level neighborhood watch groups and strengthen barangay tanod patrols.",
+                "triggered_by": f"General high crime ({total_recent} incidents)",
+            })
+
+        # Youth engagement for any significant crime
+        if total_recent >= 3:
+            community_programs.append({
+                "name": "Youth Engagement & After-School Programs",
+                "target_group": "Youth aged 13-21",
+                "description": "Sports leagues, skills workshops, and mentorship programs to keep youth engaged.",
+                "triggered_by": f"Crime prevention through youth engagement",
+            })
+
+        return {
+            "barangay_name": brgy.name,
+            "district_name": brgy.district.name,
+            "generated_date": date.today().strftime("%Y-%m-%d"),
+            "crime_summary": crime_summary,
+            "patrol_schedule": patrol_schedule,
+            "cctv_recommendations": cctv_recommendations,
+            "community_programs": community_programs,
+        }
+    finally:
+        session.close()
