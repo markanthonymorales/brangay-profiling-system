@@ -2,6 +2,7 @@ import logging
 from database.db import get_session
 from database.models import Utility, LandType, WasteManagement
 from services.audit_service import log_action
+from services.history_service import record_field_changes
 
 logger = logging.getLogger(__name__)
 
@@ -38,9 +39,12 @@ def save_utility_record(barangay_id: int, year: int, data: dict,
         if existing:
             old_values = {c.key: getattr(existing, c.key) for c in Utility.__table__.columns
                          if c.key not in ("id", "barangay_id", "year", "created_at", "updated_at")}
+            old_data = {c.key: getattr(existing, c.key) for c in existing.__table__.columns}
             for key, value in data.items():
                 if hasattr(existing, key):
                     setattr(existing, key, value)
+            new_data = {c.key: getattr(existing, c.key) for c in existing.__table__.columns}
+            record_field_changes("utilities", existing.id, old_data, new_data, user_id)
             session.commit()
             log_action(user_id, "UPDATE", "utilities", existing.id,
                        old_values=old_values, new_values=data)
@@ -82,9 +86,12 @@ def save_land_type(barangay_id: int, data: dict, user_id: int) -> tuple[bool, st
             if not record:
                 return False, "Land type not found."
             old_values = {"type": record.type, "area_sqkm": record.area_sqkm, "percentage": record.percentage}
+            old_data = {c.key: getattr(record, c.key) for c in record.__table__.columns}
             for key, value in data.items():
                 if hasattr(record, key):
                     setattr(record, key, value)
+            new_data = {c.key: getattr(record, c.key) for c in record.__table__.columns}
+            record_field_changes("land_types", record.id, old_data, new_data, user_id)
             session.commit()
             log_action(user_id, "UPDATE", "land_types", record.id,
                        old_values=old_values, new_values=data)
@@ -135,9 +142,12 @@ def save_waste_record(barangay_id: int, year: int, data: dict,
         if existing:
             old_values = {c.key: getattr(existing, c.key) for c in WasteManagement.__table__.columns
                          if c.key not in ("id", "barangay_id", "year", "created_at", "updated_at")}
+            old_data = {c.key: getattr(existing, c.key) for c in existing.__table__.columns}
             for key, value in data.items():
                 if hasattr(existing, key):
                     setattr(existing, key, value)
+            new_data = {c.key: getattr(existing, c.key) for c in existing.__table__.columns}
+            record_field_changes("waste_management", existing.id, old_data, new_data, user_id)
             session.commit()
             log_action(user_id, "UPDATE", "waste_management", existing.id,
                        old_values=old_values, new_values=data)

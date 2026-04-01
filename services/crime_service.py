@@ -5,6 +5,7 @@ import numpy as np
 from database.db import get_session
 from database.models import CrimeIncident, TrafficIncident, Barangay, District
 from services.audit_service import log_action
+from services.history_service import record_field_changes
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +25,7 @@ def save_crime_incident(barangay_id: int, data: dict, user_id: int) -> tuple[boo
             record = session.get(CrimeIncident, incident_id)
             if not record:
                 return False, "Incident not found."
+            old_data = {c.key: getattr(record, c.key) for c in record.__table__.columns}
             old_values = {
                 "crime_type": record.crime_type, "severity": record.severity,
                 "status": record.status, "date_occurred": str(record.date_occurred),
@@ -31,6 +33,8 @@ def save_crime_incident(barangay_id: int, data: dict, user_id: int) -> tuple[boo
             for key, value in data.items():
                 if hasattr(record, key):
                     setattr(record, key, value)
+            new_data = {c.key: getattr(record, c.key) for c in record.__table__.columns}
+            record_field_changes("crime_incidents", record.id, old_data, new_data, user_id)
             session.commit()
             log_action(user_id, "UPDATE", "crime_incidents", record.id,
                        old_values=old_values, new_values=data)
@@ -108,6 +112,7 @@ def save_traffic_incident(barangay_id: int, data: dict, user_id: int) -> tuple[b
             record = session.get(TrafficIncident, incident_id)
             if not record:
                 return False, "Incident not found."
+            old_data = {c.key: getattr(record, c.key) for c in record.__table__.columns}
             old_values = {
                 "incident_type": record.incident_type, "severity": record.severity,
                 "status": record.status, "date_occurred": str(record.date_occurred),
@@ -115,6 +120,8 @@ def save_traffic_incident(barangay_id: int, data: dict, user_id: int) -> tuple[b
             for key, value in data.items():
                 if hasattr(record, key):
                     setattr(record, key, value)
+            new_data = {c.key: getattr(record, c.key) for c in record.__table__.columns}
+            record_field_changes("traffic_incidents", record.id, old_data, new_data, user_id)
             session.commit()
             log_action(user_id, "UPDATE", "traffic_incidents", record.id,
                        old_values=old_values, new_values=data)
