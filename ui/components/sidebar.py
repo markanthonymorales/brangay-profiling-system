@@ -76,6 +76,7 @@ class Sidebar(ctk.CTkFrame):
             ("submissions", "Submissions", "\U0001F4E5"),
             ("reports", "Reports", "\U0001F4C4"),
             ("analytics", "Analytics", "\U0001F4C8"),
+            ("comparisons", "Comparisons", "\U0001F4CA"),
             ("forecasting", "Forecasting", "\U0001F52E"),
             ("crime", "Crime & Safety", "\U0001F6E1"),
             ("action_plans", "Action Plans", "\U0001F4CB"),

@@ -208,6 +208,9 @@ class App(ctk.CTk):
         elif view_key == "analytics":
             from ui.views.analytics_view import AnalyticsView
             return AnalyticsView(self._content_frame)
+        elif view_key == "comparisons":
+            from ui.views.comparison_view import ComparisonView
+            return ComparisonView(self._content_frame)
         elif view_key == "crime":
             from ui.views.crime_view import CrimeView
             return CrimeView(self._content_frame)
