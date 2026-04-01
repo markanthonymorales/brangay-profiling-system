@@ -87,6 +87,7 @@ class Sidebar(ctk.CTkFrame):
         admin_items = [
             ("users", "User Management", "\U0001F465"),
             ("audit_log", "Audit Log", "\U0001F4DC"),
+            ("schedule", "Data Collection", "\U0001F4C5"),
             ("system", "System", "\u2699"),
         ]
 

@@ -232,6 +232,9 @@ class App(ctk.CTk):
         elif view_key == "audit_log":
             from ui.views.audit_log_view import AuditLogView
             return AuditLogView(self._content_frame)
+        elif view_key == "schedule":
+            from ui.views.schedule_view import ScheduleView
+            return ScheduleView(self._content_frame)
         elif view_key == "system":
             from ui.views.system_view import SystemView
             return SystemView(self._content_frame)

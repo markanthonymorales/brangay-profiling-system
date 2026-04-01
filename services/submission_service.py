@@ -69,6 +69,14 @@ def approve_submission(submission_id: int, reviewer_id: int,
             logger.warning(f"Submission #{sub.id} apply failed: {msg}")
             return False, f"Could not apply data: {msg}. Submission remains pending."
 
+        # Refresh submission status tracking
+        if sub.year:
+            try:
+                from services.schedule_service import refresh_submission_status
+                refresh_submission_status(sub.barangay_id, sub.year)
+            except Exception as e:
+                logger.warning(f"Could not refresh submission status: {e}")
+
         # Only mark as approved AFTER successful apply
         sub.status = "approved"
         sub.reviewed_by = reviewer_id
