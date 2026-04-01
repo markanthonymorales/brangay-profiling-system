@@ -1,7 +1,7 @@
 from datetime import datetime, date
 from sqlalchemy import (
     Column, Integer, String, Float, Boolean, Text, Date, DateTime,
-    ForeignKey, UniqueConstraint, create_engine
+    ForeignKey, UniqueConstraint, create_engine, Index
 )
 from sqlalchemy.orm import declarative_base, relationship
 
@@ -339,3 +339,59 @@ class RetryQueue(TimestampMixin, Base):
     attempts = Column(Integer, default=0, nullable=False)
     max_attempts = Column(Integer, default=3, nullable=False)
     status = Column(String(20), nullable=False, default="pending")  # pending/completed/failed
+
+
+# ── Record History (Field-Level Change Tracking) ────────────
+
+class RecordHistory(TimestampMixin, Base):
+    __tablename__ = "record_history"
+    __table_args__ = (
+        Index("ix_record_history_lookup", "table_name", "record_id"),
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    table_name = Column(String(50), nullable=False)
+    record_id = Column(Integer, nullable=False)
+    field_name = Column(String(100), nullable=False)
+    old_value = Column(Text, nullable=True)
+    new_value = Column(Text, nullable=True)
+    changed_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    changed_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    user = relationship("User")
+
+
+# ── Data Collection Scheduling ──────────────────────────────
+
+class DataCollectionSchedule(TimestampMixin, Base):
+    __tablename__ = "data_collection_schedules"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    year = Column(Integer, nullable=False, unique=True)
+    start_date = Column(Date, nullable=False)
+    end_date = Column(Date, nullable=False)
+    status = Column(String(20), nullable=False, default="upcoming")
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    notes = Column(Text, nullable=True)
+
+    creator = relationship("User")
+
+
+class BarangaySubmissionStatus(TimestampMixin, Base):
+    __tablename__ = "barangay_submission_status"
+    __table_args__ = (
+        UniqueConstraint("barangay_id", "year", name="uq_submission_status_barangay_year"),
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    barangay_id = Column(Integer, ForeignKey("barangays.id"), nullable=False)
+    year = Column(Integer, nullable=False)
+    population_submitted = Column(Boolean, default=False, nullable=False)
+    income_submitted = Column(Boolean, default=False, nullable=False)
+    utilities_submitted = Column(Boolean, default=False, nullable=False)
+    crime_submitted = Column(Boolean, default=False, nullable=False)
+    waste_submitted = Column(Boolean, default=False, nullable=False)
+    is_complete = Column(Boolean, default=False, nullable=False)
+    completed_at = Column(DateTime, nullable=True)
+
+    barangay = relationship("Barangay")
