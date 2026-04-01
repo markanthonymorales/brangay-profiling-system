@@ -2,6 +2,7 @@ import logging
 from database.db import get_session
 from database.models import PopulationRecord, AgeDemographic
 from services.audit_service import log_action
+from services.history_service import record_field_changes
 
 logger = logging.getLogger(__name__)
 
@@ -59,9 +60,12 @@ def save_population_record(barangay_id: int, year: int, data: dict,
                 "foreign_residents": existing.foreign_residents,
                 "household_count": existing.household_count,
             }
+            old_data = {c.key: getattr(existing, c.key) for c in existing.__table__.columns}
             for key, value in data.items():
                 if hasattr(existing, key):
                     setattr(existing, key, value)
+            new_data = {c.key: getattr(existing, c.key) for c in existing.__table__.columns}
+            record_field_changes("population_records", existing.id, old_data, new_data, user_id)
             session.commit()
 
             log_action(user_id, "UPDATE", "population_records", existing.id,

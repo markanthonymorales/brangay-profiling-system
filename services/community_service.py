@@ -2,6 +2,7 @@ import logging
 from database.db import get_session
 from database.models import FoodSource, GovernmentFacility, ReligiousDemographic
 from services.audit_service import log_action
+from services.history_service import record_field_changes
 
 logger = logging.getLogger(__name__)
 
@@ -25,10 +26,13 @@ def save_food_source(barangay_id: int, data: dict, user_id: int) -> tuple[bool, 
             record = session.get(FoodSource, source_id)
             if not record:
                 return False, "Food source not found."
+            old_data = {c.key: getattr(record, c.key) for c in record.__table__.columns}
             old_values = {"type": record.type, "description": record.description}
             for key, value in data.items():
                 if hasattr(record, key):
                     setattr(record, key, value)
+            new_data = {c.key: getattr(record, c.key) for c in record.__table__.columns}
+            record_field_changes("food_sources", record.id, old_data, new_data, user_id)
             session.commit()
             log_action(user_id, "UPDATE", "food_sources", record.id,
                        old_values=old_values, new_values=data)
@@ -87,10 +91,13 @@ def save_government_facility(barangay_id: int, data: dict, user_id: int) -> tupl
             record = session.get(GovernmentFacility, facility_id)
             if not record:
                 return False, "Facility not found."
+            old_data = {c.key: getattr(record, c.key) for c in record.__table__.columns}
             old_values = {"agency_name": record.agency_name, "facility_type": record.facility_type}
             for key, value in data.items():
                 if hasattr(record, key):
                     setattr(record, key, value)
+            new_data = {c.key: getattr(record, c.key) for c in record.__table__.columns}
+            record_field_changes("government_facilities", record.id, old_data, new_data, user_id)
             session.commit()
             log_action(user_id, "UPDATE", "government_facilities", record.id,
                        old_values=old_values, new_values=data)
@@ -152,10 +159,13 @@ def save_religious_demographic(barangay_id: int, data: dict, user_id: int) -> tu
             record = session.get(ReligiousDemographic, demo_id)
             if not record:
                 return False, "Record not found."
+            old_data = {c.key: getattr(record, c.key) for c in record.__table__.columns}
             old_values = {"religion": record.religion, "count": record.count, "percentage": record.percentage}
             for key, value in data.items():
                 if hasattr(record, key):
                     setattr(record, key, value)
+            new_data = {c.key: getattr(record, c.key) for c in record.__table__.columns}
+            record_field_changes("religious_demographics", record.id, old_data, new_data, user_id)
             session.commit()
             log_action(user_id, "UPDATE", "religious_demographics", record.id,
                        old_values=old_values, new_values=data)

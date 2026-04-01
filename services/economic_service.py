@@ -2,6 +2,7 @@ import logging
 from database.db import get_session
 from database.models import IncomeData, Business
 from services.audit_service import log_action
+from services.history_service import record_field_changes
 
 logger = logging.getLogger(__name__)
 
@@ -43,9 +44,12 @@ def save_income_record(barangay_id: int, year: int, data: dict,
         if existing:
             old_values = {c.key: getattr(existing, c.key) for c in IncomeData.__table__.columns
                          if c.key not in ("id", "barangay_id", "year", "created_at", "updated_at")}
+            old_data = {c.key: getattr(existing, c.key) for c in existing.__table__.columns}
             for key, value in data.items():
                 if hasattr(existing, key):
                     setattr(existing, key, value)
+            new_data = {c.key: getattr(existing, c.key) for c in existing.__table__.columns}
+            record_field_changes("income_data", existing.id, old_data, new_data, user_id)
             session.commit()
             log_action(user_id, "UPDATE", "income_data", existing.id,
                        old_values=old_values, new_values=data)
@@ -96,9 +100,12 @@ def save_business(barangay_id: int, data: dict, user_id: int) -> tuple[bool, str
             if business is None:
                 return False, "Business not found."
             old_values = {"name": business.name, "type": business.type, "is_active": business.is_active}
+            old_data = {c.key: getattr(business, c.key) for c in business.__table__.columns}
             for key, value in data.items():
                 if hasattr(business, key):
                     setattr(business, key, value)
+            new_data = {c.key: getattr(business, c.key) for c in business.__table__.columns}
+            record_field_changes("businesses", business.id, old_data, new_data, user_id)
             session.commit()
             log_action(user_id, "UPDATE", "businesses", business.id,
                        old_values=old_values, new_values=data)

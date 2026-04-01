@@ -1,8 +1,9 @@
 import json
 import logging
+from datetime import date
 from config import SEED_DATA_PATH, DEFAULT_ADMIN_USERNAME, DEFAULT_ADMIN_PASSWORD, DEFAULT_ADMIN_FULLNAME
 from database.db import get_session
-from database.models import User, District, Barangay, PopulationRecord
+from database.models import User, District, Barangay, PopulationRecord, DataCollectionSchedule, BarangaySubmissionStatus
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +35,9 @@ def seed_if_empty():
 
         # Now seed real data
         _seed_real_data()
+
+        # Seed initial data collection schedule for 2026
+        _seed_schedule_data()
 
     except Exception as e:
         session.rollback()
@@ -108,3 +112,39 @@ def _seed_real_data():
     except Exception as e:
         logger.error(f"Real data seeding failed: {e}")
         logger.info("The app will still work — you can enter data manually or run: python -m database.real_data")
+
+
+def _seed_schedule_data():
+    """Seed initial 2026 data collection schedule."""
+    session = get_session()
+    try:
+        existing_sched = session.query(DataCollectionSchedule).filter_by(year=2026).first()
+        if not existing_sched:
+            admin = session.query(User).filter_by(username="admin").first()
+            if admin:
+                sched = DataCollectionSchedule(
+                    year=2026,
+                    start_date=date(2026, 1, 1),
+                    end_date=date(2026, 3, 31),
+                    status="active",
+                    created_by=admin.id,
+                    notes="Initial data collection cycle",
+                )
+                session.add(sched)
+                session.flush()
+
+                # Initialize status rows for all barangays
+                barangays = session.query(Barangay).all()
+                for brgy in barangays:
+                    status = BarangaySubmissionStatus(
+                        barangay_id=brgy.id,
+                        year=2026,
+                    )
+                    session.add(status)
+                session.commit()
+                logger.info(f"Seeded 2026 data collection schedule with {len(barangays)} tracking rows")
+    except Exception as e:
+        session.rollback()
+        logger.error(f"Schedule seeding failed: {e}")
+    finally:
+        session.close()

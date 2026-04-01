@@ -4,7 +4,9 @@ from ui.theme import (
     TEXT_PRIMARY, TEXT_SECONDARY, PRIMARY_COLOR, ACCENT_COLOR, WARNING_COLOR,
     CARD_BG, BG_COLOR, PADDING_LARGE, PADDING_NORMAL,
 )
-from config import DASHBOARD_REFRESH_SECONDS
+from config import DASHBOARD_REFRESH_SECONDS, ANOMALY_CHECK_INTERVAL
+from services.schedule_service import get_schedule, get_compliance_dashboard
+from services.anomaly_service import detect_all_anomalies
 from ui.components.stat_card import StatCard
 from ui.components.chart_widget import ChartWidget
 from services.report_service import get_dashboard_stats, get_district_overview
@@ -17,6 +19,8 @@ class DashboardView(ctk.CTkFrame):
     def __init__(self, master, **kwargs):
         super().__init__(master, fg_color=BG_COLOR, **kwargs)
         self._refresh_job = None
+        self._anomaly_check_counter = 0
+        self._cached_anomalies = []
         self._build_ui()
 
     def _build_ui(self):
@@ -78,6 +82,36 @@ class DashboardView(ctk.CTkFrame):
 
         self._activity_frame = ctk.CTkScrollableFrame(activity_card, fg_color="transparent")
         self._activity_frame.pack(fill="both", expand=True, padx=PADDING_NORMAL, pady=(0, PADDING_NORMAL))
+
+        # Compliance tracker
+        compliance_card = ctk.CTkFrame(self, fg_color=CARD_BG, corner_radius=12)
+        compliance_card.pack(fill="x", padx=PADDING_LARGE, pady=(0, PADDING_NORMAL))
+
+        compliance_header = ctk.CTkFrame(compliance_card, fg_color="transparent")
+        compliance_header.pack(fill="x", padx=PADDING_NORMAL, pady=(PADDING_NORMAL, 5))
+
+        ctk.CTkLabel(
+            compliance_header, text="Data Collection Compliance",
+            font=(FONT_FAMILY, 14, "bold"), text_color=TEXT_PRIMARY,
+        ).pack(side="left")
+
+        self._anomaly_badge = ctk.CTkLabel(
+            compliance_header, text="",
+            font=(FONT_FAMILY, FONT_SIZE_SMALL, "bold"), text_color=TEXT_PRIMARY,
+            fg_color=WARNING_COLOR, corner_radius=4, padx=8, pady=2,
+        )
+        self._anomaly_badge.pack(side="right")
+        self._anomaly_badge.pack_forget()  # hidden by default
+
+        self._compliance_progress = ctk.CTkProgressBar(compliance_card, width=400, height=14)
+        self._compliance_progress.set(0)
+        self._compliance_progress.pack(anchor="w", padx=PADDING_NORMAL, pady=(0, 3))
+
+        self._compliance_label = ctk.CTkLabel(
+            compliance_card, text="No active schedule",
+            font=(FONT_FAMILY, FONT_SIZE_SMALL), text_color=TEXT_SECONDARY,
+        )
+        self._compliance_label.pack(anchor="w", padx=PADDING_NORMAL, pady=(0, PADDING_NORMAL))
 
     def refresh(self):
         # Cancel previous timer to avoid unbounded chain
@@ -167,3 +201,29 @@ class DashboardView(ctk.CTkFrame):
                     row, text=a["timestamp"],
                     font=(FONT_FAMILY, 10), text_color=TEXT_SECONDARY,
                 ).pack(side="right")
+
+        # Compliance tracker
+        schedule = get_schedule()
+        if schedule:
+            compliance = get_compliance_dashboard(schedule["year"])
+            rate = compliance["completion_rate_pct"]
+            self._compliance_progress.set(rate / 100)
+            self._compliance_label.configure(
+                text=f"{compliance['complete_count']}/{compliance['total_barangays']} barangays complete for {schedule['year']} ({rate}%)",
+            )
+        else:
+            self._compliance_progress.set(0)
+            self._compliance_label.configure(text="No active schedule")
+
+        # Anomaly detection (throttled)
+        self._anomaly_check_counter += 1
+        if self._anomaly_check_counter >= ANOMALY_CHECK_INTERVAL:
+            self._anomaly_check_counter = 0
+            self._cached_anomalies = detect_all_anomalies()
+
+        if self._cached_anomalies:
+            count = len(self._cached_anomalies)
+            self._anomaly_badge.configure(text=f"\u26A0 {count} anomalies detected")
+            self._anomaly_badge.pack(side="right")
+        else:
+            self._anomaly_badge.pack_forget()

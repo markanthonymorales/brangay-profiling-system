@@ -68,6 +68,13 @@ class Sidebar(ctk.CTkFrame):
             fill="x", padx=PADDING_NORMAL, pady=(12, 10)
         )
 
+        # Scrollable container for nav items
+        self._scroll_frame = ctk.CTkScrollableFrame(
+            self, fg_color=SIDEBAR_BG, scrollbar_button_color=SIDEBAR_HOVER,
+            scrollbar_button_hover_color=SIDEBAR_ACTIVE,
+        )
+        self._scroll_frame.pack(fill="both", expand=True)
+
         # Navigation items
         nav_items = [
             ("dashboard", "Dashboard", "\U0001F4CA"),
@@ -76,6 +83,7 @@ class Sidebar(ctk.CTkFrame):
             ("submissions", "Submissions", "\U0001F4E5"),
             ("reports", "Reports", "\U0001F4C4"),
             ("analytics", "Analytics", "\U0001F4C8"),
+            ("comparisons", "Comparisons", "\U0001F4CA"),
             ("forecasting", "Forecasting", "\U0001F52E"),
             ("crime", "Crime & Safety", "\U0001F6E1"),
             ("action_plans", "Action Plans", "\U0001F4CB"),
@@ -86,6 +94,7 @@ class Sidebar(ctk.CTkFrame):
         admin_items = [
             ("users", "User Management", "\U0001F465"),
             ("audit_log", "Audit Log", "\U0001F4DC"),
+            ("schedule", "Data Collection", "\U0001F4C5"),
             ("system", "System", "\u2699"),
         ]
 
@@ -94,11 +103,11 @@ class Sidebar(ctk.CTkFrame):
 
         if user_role == "admin":
             # Admin separator
-            ctk.CTkFrame(self, height=1, fg_color=SIDEBAR_HOVER).pack(
+            ctk.CTkFrame(self._scroll_frame, height=1, fg_color=SIDEBAR_HOVER).pack(
                 fill="x", padx=PADDING_NORMAL, pady=10
             )
             ctk.CTkLabel(
-                self, text="  ADMIN", font=(FONT_FAMILY, 10),
+                self._scroll_frame, text="  ADMIN", font=(FONT_FAMILY, 10),
                 text_color=SIDEBAR_TEXT, anchor="w",
             ).pack(fill="x", padx=PADDING_NORMAL)
 
@@ -107,7 +116,7 @@ class Sidebar(ctk.CTkFrame):
 
     def _add_item(self, key: str, text: str, icon: str):
         item = SidebarItem(
-            self, text=text, icon=icon,
+            self._scroll_frame, text=text, icon=icon,
             command=lambda k=key: self._handle_click(k),
         )
         item.pack(fill="x", padx=PADDING_NORMAL, pady=2)

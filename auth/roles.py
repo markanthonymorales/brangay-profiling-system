@@ -26,16 +26,19 @@ ROLE_PERMISSIONS = {
         "manage_users", "view_audit_log", "generate_reports", "export_data",
         "manage_departments", "approve_submissions", "view_system",
         "view_all_districts", "view_all_barangays",
+        "manage_schedules", "view_compliance",
     },
     Role.CITY_OFFICIAL: {
         "view_data", "generate_reports", "export_data",
         "approve_submissions", "view_audit_log",
         "view_all_districts", "view_all_barangays",
+        "view_compliance",
     },
     Role.DISTRICT_COORDINATOR: {
         "view_data", "enter_data", "edit_data",
         "generate_reports", "export_data",
         "approve_submissions",
+        "view_compliance",
         # Scoped to their district only (enforced at query level)
     },
     Role.ENCODER: {

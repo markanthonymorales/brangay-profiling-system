@@ -10,7 +10,7 @@ from ui.theme import (
 from ui.components.form_fields import LabeledDropdown
 from ui.dialogs.message_dialog import MessageDialog
 from services.barangay_service import get_all_districts, get_barangays_by_district
-from services.plan_service import generate_action_plan
+from services.plan_service import generate_action_plan, generate_crime_prevention_plan
 from config import BASE_DIR
 
 PRIORITY_COLORS = {
@@ -42,7 +42,7 @@ class ActionPlanView(ctk.CTkFrame):
             font=(FONT_FAMILY, FONT_SIZE_TITLE, "bold"), text_color=TEXT_PRIMARY,
         ).pack(anchor="w", padx=PADDING_LARGE, pady=(PADDING_LARGE, PADDING_NORMAL))
 
-        # Selector row
+        # Shared selector row
         selector = ctk.CTkFrame(self, fg_color=CARD_BG, corner_radius=12)
         selector.pack(fill="x", padx=PADDING_LARGE, pady=(0, PADDING_NORMAL))
 
@@ -59,29 +59,57 @@ class ActionPlanView(ctk.CTkFrame):
         self._barangay_dd = LabeledDropdown(inner, label="Barangay", values=[])
         self._barangay_dd.pack(side="left", padx=(0, 10), fill="x", expand=True)
 
+        # Tabview
+        self._tabview = ctk.CTkTabview(self, fg_color=CARD_BG, corner_radius=12)
+        self._tabview.pack(fill="both", expand=True, padx=PADDING_LARGE, pady=(0, PADDING_LARGE))
+
+        # Tab 1: Action Plan (existing)
+        plan_tab = self._tabview.add("Action Plan")
+        btn_row = ctk.CTkFrame(plan_tab, fg_color="transparent")
+        btn_row.pack(fill="x", padx=PADDING_NORMAL, pady=(PADDING_NORMAL, 5))
+
         ctk.CTkButton(
-            inner, text="Generate Plan", command=self._generate,
+            btn_row, text="Generate Plan", command=self._generate,
             font=(FONT_FAMILY, FONT_SIZE_NORMAL, "bold"),
             fg_color=PRIMARY_COLOR, text_color=TEXT_LIGHT, width=140, height=38,
-        ).pack(side="left", pady=(18, 0), padx=(0, 5))
+        ).pack(side="left", padx=(0, 5))
 
         self._export_btn = ctk.CTkButton(
-            inner, text="Export PDF", command=self._export_pdf,
+            btn_row, text="Export PDF", command=self._export_pdf,
             font=(FONT_FAMILY, FONT_SIZE_NORMAL, "bold"),
             fg_color=ACCENT_COLOR, text_color=TEXT_LIGHT, width=120, height=38,
             state="disabled",
         )
-        self._export_btn.pack(side="left", pady=(18, 0))
+        self._export_btn.pack(side="left")
 
-        # Results area
-        self._results = ctk.CTkScrollableFrame(self, fg_color=CARD_BG, corner_radius=12)
-        self._results.pack(fill="both", expand=True, padx=PADDING_LARGE, pady=(0, PADDING_LARGE))
+        self._results = ctk.CTkScrollableFrame(plan_tab, fg_color="transparent")
+        self._results.pack(fill="both", expand=True, padx=PADDING_NORMAL, pady=(0, PADDING_NORMAL))
 
         self._placeholder = ctk.CTkLabel(
             self._results, text="Select a barangay and click 'Generate Plan' to create an action plan.",
             font=(FONT_FAMILY, FONT_SIZE_NORMAL), text_color=TEXT_SECONDARY,
         )
         self._placeholder.pack(pady=40)
+
+        # Tab 2: Crime Prevention
+        crime_tab = self._tabview.add("Crime Prevention")
+        crime_btn_row = ctk.CTkFrame(crime_tab, fg_color="transparent")
+        crime_btn_row.pack(fill="x", padx=PADDING_NORMAL, pady=(PADDING_NORMAL, 5))
+
+        ctk.CTkButton(
+            crime_btn_row, text="Generate Crime Prevention Plan",
+            command=self._generate_crime_plan,
+            font=(FONT_FAMILY, FONT_SIZE_NORMAL, "bold"),
+            fg_color=PRIMARY_COLOR, text_color=TEXT_LIGHT, width=260, height=38,
+        ).pack(side="left")
+
+        self._crime_results = ctk.CTkScrollableFrame(crime_tab, fg_color="transparent")
+        self._crime_results.pack(fill="both", expand=True, padx=PADDING_NORMAL, pady=(0, PADDING_NORMAL))
+
+        ctk.CTkLabel(
+            self._crime_results, text="Select a barangay and click 'Generate Crime Prevention Plan'.",
+            font=(FONT_FAMILY, FONT_SIZE_NORMAL), text_color=TEXT_SECONDARY,
+        ).pack(pady=40)
 
         if district_names:
             self._on_district_change(district_names[0])
@@ -228,6 +256,150 @@ class ActionPlanView(ctk.CTkFrame):
             MessageDialog(self, title="Export", message=f"Action plan exported to {filepath}", dialog_type="success")
         except Exception as e:
             MessageDialog(self, title="Error", message=str(e), dialog_type="error")
+
+    def _generate_crime_plan(self):
+        brgy_name = self._barangay_dd.get()
+        brgy_id = self._barangay_map.get(brgy_name)
+        if not brgy_id:
+            MessageDialog(self, title="Error", message="Please select a barangay.", dialog_type="error")
+            return
+
+        data = generate_crime_prevention_plan(brgy_id)
+        if not data:
+            MessageDialog(self, title="Error", message="Could not generate plan.", dialog_type="error")
+            return
+
+        self._render_crime_plan(data)
+
+    def _render_crime_plan(self, data: dict):
+        for w in self._crime_results.winfo_children():
+            w.destroy()
+
+        # Header
+        ctk.CTkLabel(
+            self._crime_results,
+            text=f"Crime Prevention Plan: Brgy. {data['barangay_name']}",
+            font=(FONT_FAMILY, 18, "bold"), text_color=TEXT_PRIMARY,
+        ).pack(anchor="w", padx=PADDING_NORMAL, pady=(PADDING_NORMAL, 2))
+
+        ctk.CTkLabel(
+            self._crime_results,
+            text=f"{data['district_name']}  |  Generated: {data['generated_date']}",
+            font=(FONT_FAMILY, FONT_SIZE_SMALL), text_color=TEXT_SECONDARY,
+        ).pack(anchor="w", padx=PADDING_NORMAL, pady=(0, 15))
+
+        summary = data["crime_summary"]
+
+        # Crime Summary Card
+        summary_card = ctk.CTkFrame(self._crime_results, fg_color="#FAFAFA", corner_radius=10)
+        summary_card.pack(fill="x", padx=PADDING_NORMAL, pady=5)
+
+        ctk.CTkLabel(
+            summary_card, text="\U0001F4CA Crime Summary",
+            font=(FONT_FAMILY, FONT_SIZE_NORMAL, "bold"), text_color=TEXT_PRIMARY,
+        ).pack(anchor="w", padx=PADDING_NORMAL, pady=(PADDING_NORMAL, 5))
+
+        trend_color = {"increasing": DANGER_COLOR, "decreasing": ACCENT_COLOR, "stable": TEXT_SECONDARY}
+        ctk.CTkLabel(
+            summary_card,
+            text=f"Total incidents (12mo): {summary['total_incidents']}  |  Trend: {summary['trend'].capitalize()} ({summary['trend_pct']:+.1f}%)",
+            font=(FONT_FAMILY, FONT_SIZE_SMALL),
+            text_color=trend_color.get(summary["trend"], TEXT_SECONDARY),
+        ).pack(anchor="w", padx=PADDING_NORMAL, pady=(0, 5))
+
+        if summary["top_types"]:
+            types_text = ", ".join(f"{t['type']} ({t['count']})" for t in summary["top_types"])
+            ctk.CTkLabel(
+                summary_card, text=f"Top types: {types_text}",
+                font=(FONT_FAMILY, FONT_SIZE_SMALL), text_color=TEXT_SECONDARY,
+            ).pack(anchor="w", padx=PADDING_NORMAL, pady=(0, PADDING_NORMAL))
+
+        # Patrol Schedule
+        patrol_card = ctk.CTkFrame(self._crime_results, fg_color="#FAFAFA", corner_radius=10)
+        patrol_card.pack(fill="x", padx=PADDING_NORMAL, pady=5)
+
+        ctk.CTkLabel(
+            patrol_card, text="\U0001F6A8 Patrol Schedule",
+            font=(FONT_FAMILY, FONT_SIZE_NORMAL, "bold"), text_color=TEXT_PRIMARY,
+        ).pack(anchor="w", padx=PADDING_NORMAL, pady=(PADDING_NORMAL, 5))
+
+        for sched in data["patrol_schedule"]:
+            priority_color = PRIORITY_COLORS.get(sched["priority"].upper(), TEXT_SECONDARY)
+            row = ctk.CTkFrame(patrol_card, fg_color="transparent")
+            row.pack(fill="x", padx=PADDING_NORMAL, pady=2)
+
+            ctk.CTkLabel(
+                row, text=sched["priority"].upper(),
+                font=(FONT_FAMILY, 9, "bold"), text_color=TEXT_LIGHT,
+                fg_color=priority_color, corner_radius=4, padx=6, pady=2,
+            ).pack(side="left", padx=(0, 8))
+
+            ctk.CTkLabel(
+                row, text=f"{sched['shift']} — {', '.join(sched['focus_areas'])}",
+                font=(FONT_FAMILY, FONT_SIZE_SMALL), text_color=TEXT_PRIMARY,
+            ).pack(side="left")
+
+        ctk.CTkFrame(patrol_card, height=8, fg_color="transparent").pack()
+
+        # CCTV Recommendations
+        if data["cctv_recommendations"]:
+            cctv_card = ctk.CTkFrame(self._crime_results, fg_color="#FAFAFA", corner_radius=10)
+            cctv_card.pack(fill="x", padx=PADDING_NORMAL, pady=5)
+
+            ctk.CTkLabel(
+                cctv_card, text="\U0001F4F7 CCTV Recommendations",
+                font=(FONT_FAMILY, FONT_SIZE_NORMAL, "bold"), text_color=TEXT_PRIMARY,
+            ).pack(anchor="w", padx=PADDING_NORMAL, pady=(PADDING_NORMAL, 5))
+
+            for rec in data["cctv_recommendations"]:
+                row = ctk.CTkFrame(cctv_card, fg_color="transparent")
+                row.pack(fill="x", padx=PADDING_NORMAL, pady=2)
+
+                badge_color = DANGER_COLOR if rec["priority"] == "high" else WARNING_COLOR
+                ctk.CTkLabel(
+                    row, text=rec["priority"].upper(),
+                    font=(FONT_FAMILY, 9, "bold"), text_color=TEXT_LIGHT,
+                    fg_color=badge_color, corner_radius=4, padx=6, pady=2,
+                ).pack(side="left", padx=(0, 8))
+
+                ctk.CTkLabel(
+                    row, text=f"{rec['location_desc']} — {rec['reason']}",
+                    font=(FONT_FAMILY, FONT_SIZE_SMALL), text_color=TEXT_PRIMARY,
+                ).pack(side="left")
+
+            ctk.CTkFrame(cctv_card, height=8, fg_color="transparent").pack()
+
+        # Community Programs
+        if data["community_programs"]:
+            prog_card = ctk.CTkFrame(self._crime_results, fg_color="#FAFAFA", corner_radius=10)
+            prog_card.pack(fill="x", padx=PADDING_NORMAL, pady=5)
+
+            ctk.CTkLabel(
+                prog_card, text="\U0001F465 Community Programs",
+                font=(FONT_FAMILY, FONT_SIZE_NORMAL, "bold"), text_color=TEXT_PRIMARY,
+            ).pack(anchor="w", padx=PADDING_NORMAL, pady=(PADDING_NORMAL, 5))
+
+            for prog in data["community_programs"]:
+                prow = ctk.CTkFrame(prog_card, fg_color="#F0F0F0", corner_radius=8)
+                prow.pack(fill="x", padx=PADDING_NORMAL, pady=3)
+
+                ctk.CTkLabel(
+                    prow, text=prog["name"],
+                    font=(FONT_FAMILY, FONT_SIZE_SMALL, "bold"), text_color=TEXT_PRIMARY,
+                ).pack(anchor="w", padx=PADDING_NORMAL, pady=(8, 0))
+
+                ctk.CTkLabel(
+                    prow, text=f"Target: {prog['target_group']}  |  Triggered by: {prog['triggered_by']}",
+                    font=(FONT_FAMILY, 10), text_color=PRIMARY_COLOR,
+                ).pack(anchor="w", padx=PADDING_NORMAL, pady=2)
+
+                ctk.CTkLabel(
+                    prow, text=prog["description"],
+                    font=(FONT_FAMILY, FONT_SIZE_SMALL), text_color=TEXT_SECONDARY,
+                    wraplength=700, justify="left",
+                ).pack(anchor="w", padx=PADDING_NORMAL, pady=(0, 8))
+
+            ctk.CTkFrame(prog_card, height=8, fg_color="transparent").pack()
 
     def refresh(self):
         pass
