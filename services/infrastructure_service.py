@@ -78,7 +78,7 @@ def save_land_type(barangay_id: int, data: dict, user_id: int) -> tuple[bool, st
     try:
         land_id = data.pop("id", None)
         if land_id:
-            record = session.query(LandType).get(land_id)
+            record = session.get(LandType, land_id)
             if not record:
                 return False, "Land type not found."
             old_values = {"type": record.type, "area_sqkm": record.area_sqkm, "percentage": record.percentage}

@@ -22,7 +22,7 @@ def save_food_source(barangay_id: int, data: dict, user_id: int) -> tuple[bool, 
     try:
         source_id = data.pop("id", None)
         if source_id:
-            record = session.query(FoodSource).get(source_id)
+            record = session.get(FoodSource, source_id)
             if not record:
                 return False, "Food source not found."
             old_values = {"type": record.type, "description": record.description}
@@ -50,7 +50,7 @@ def save_food_source(barangay_id: int, data: dict, user_id: int) -> tuple[bool, 
 def delete_food_source(source_id: int, user_id: int) -> tuple[bool, str]:
     session = get_session()
     try:
-        record = session.query(FoodSource).get(source_id)
+        record = session.get(FoodSource, source_id)
         if not record:
             return False, "Food source not found."
         old_values = {"type": record.type, "description": record.description}
@@ -84,7 +84,7 @@ def save_government_facility(barangay_id: int, data: dict, user_id: int) -> tupl
     try:
         facility_id = data.pop("id", None)
         if facility_id:
-            record = session.query(GovernmentFacility).get(facility_id)
+            record = session.get(GovernmentFacility, facility_id)
             if not record:
                 return False, "Facility not found."
             old_values = {"agency_name": record.agency_name, "facility_type": record.facility_type}
@@ -112,7 +112,7 @@ def save_government_facility(barangay_id: int, data: dict, user_id: int) -> tupl
 def delete_government_facility(facility_id: int, user_id: int) -> tuple[bool, str]:
     session = get_session()
     try:
-        record = session.query(GovernmentFacility).get(facility_id)
+        record = session.get(GovernmentFacility, facility_id)
         if not record:
             return False, "Facility not found."
         old_values = {"agency_name": record.agency_name, "facility_type": record.facility_type}
@@ -149,7 +149,7 @@ def save_religious_demographic(barangay_id: int, data: dict, user_id: int) -> tu
     try:
         demo_id = data.pop("id", None)
         if demo_id:
-            record = session.query(ReligiousDemographic).get(demo_id)
+            record = session.get(ReligiousDemographic, demo_id)
             if not record:
                 return False, "Record not found."
             old_values = {"religion": record.religion, "count": record.count, "percentage": record.percentage}

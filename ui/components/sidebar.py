@@ -73,16 +73,19 @@ class Sidebar(ctk.CTkFrame):
             ("dashboard", "Dashboard", "\U0001F4CA"),
             ("barangays", "Barangays", "\U0001F3D8"),
             ("data_entry", "Data Entry", "\U0001F4DD"),
+            ("submissions", "Submissions", "\U0001F4E5"),
             ("reports", "Reports", "\U0001F4C4"),
             ("analytics", "Analytics", "\U0001F4C8"),
+            ("forecasting", "Forecasting", "\U0001F52E"),
             ("crime", "Crime & Safety", "\U0001F6E1"),
             ("action_plans", "Action Plans", "\U0001F4CB"),
             ("map", "Map", "\U0001F5FA"),
+            ("notifications", "Notifications", "\U0001F514"),
         ]
 
         admin_items = [
             ("users", "User Management", "\U0001F465"),
-            ("audit_log", "Audit Log", "\U0001F4CB"),
+            ("audit_log", "Audit Log", "\U0001F4DC"),
             ("system", "System", "\u2699"),
         ]
 

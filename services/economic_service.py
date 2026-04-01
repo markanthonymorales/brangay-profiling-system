@@ -92,7 +92,7 @@ def save_business(barangay_id: int, data: dict, user_id: int) -> tuple[bool, str
     try:
         business_id = data.pop("id", None)
         if business_id:
-            business = session.query(Business).get(business_id)
+            business = session.get(Business, business_id)
             if business is None:
                 return False, "Business not found."
             old_values = {"name": business.name, "type": business.type, "is_active": business.is_active}
@@ -120,7 +120,7 @@ def save_business(barangay_id: int, data: dict, user_id: int) -> tuple[bool, str
 def delete_business(business_id: int, user_id: int) -> tuple[bool, str]:
     session = get_session()
     try:
-        business = session.query(Business).get(business_id)
+        business = session.get(Business, business_id)
         if business is None:
             return False, "Business not found."
         old_values = {"name": business.name, "type": business.type}

@@ -7,16 +7,21 @@ def validate_required(value, field_name: str) -> tuple[bool, str]:
     return True, ""
 
 
-def validate_positive_int(value, field_name: str) -> tuple[bool, str]:
+def validate_non_negative_int(value, field_name: str) -> tuple[bool, str]:
+    """Validates that value is a non-negative integer (0 or greater)."""
     if value is None or value == "":
         return True, ""
     try:
         v = int(value)
         if v < 0:
-            return False, f"{field_name} must be a positive number."
+            return False, f"{field_name} must be 0 or greater."
         return True, ""
     except (ValueError, TypeError):
         return False, f"{field_name} must be a valid integer."
+
+
+# Backward-compatible alias
+validate_positive_int = validate_non_negative_int
 
 
 def validate_percentage(value, field_name: str) -> tuple[bool, str]:

@@ -164,7 +164,7 @@ def get_district_comparison() -> list[dict]:
 def get_income_distribution(barangay_id: int) -> dict | None:
     session = get_session()
     try:
-        brgy = session.query(Barangay).get(barangay_id)
+        brgy = session.get(Barangay, barangay_id)
         if not brgy:
             return None
 

@@ -199,6 +199,9 @@ class App(ctk.CTk):
         elif view_key == "data_entry":
             from ui.views.data_entry_view import DataEntryView
             return DataEntryView(self._content_frame)
+        elif view_key == "submissions":
+            from ui.views.submissions_view import SubmissionsView
+            return SubmissionsView(self._content_frame)
         elif view_key == "reports":
             from ui.views.reports_view import ReportsView
             return ReportsView(self._content_frame)
@@ -214,6 +217,12 @@ class App(ctk.CTk):
         elif view_key == "map":
             from ui.views.map_view import MapView
             return MapView(self._content_frame)
+        elif view_key == "forecasting":
+            from ui.views.forecast_view import ForecastView
+            return ForecastView(self._content_frame)
+        elif view_key == "notifications":
+            from ui.views.notification_view import NotificationView
+            return NotificationView(self._content_frame)
         elif view_key == "users":
             from ui.views.user_mgmt_view import UserMgmtView
             return UserMgmtView(self._content_frame)

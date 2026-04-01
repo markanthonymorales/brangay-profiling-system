@@ -15,6 +15,7 @@ def seed_if_empty():
             if session.query(PopulationRecord).count() == 0:
                 logger.info("Database has barangays but no population data. Seeding real data...")
                 session.close()
+                session = None  # Prevent finally from closing again
                 _seed_real_data()
                 return
             logger.info("Database already seeded. Skipping.")
@@ -25,6 +26,11 @@ def seed_if_empty():
         session.commit()
         logger.info("Database seeded successfully.")
         session.close()
+        session = None  # Prevent finally from closing again
+
+        # Seed departments
+        from services.department_service import seed_default_departments
+        seed_default_departments()
 
         # Now seed real data
         _seed_real_data()
@@ -34,10 +40,11 @@ def seed_if_empty():
         logger.error(f"Seed failed: {e}")
         raise
     finally:
-        try:
-            session.close()
-        except Exception:
-            pass
+        if session is not None:
+            try:
+                session.close()
+            except Exception:
+                pass
 
 
 def _seed_districts_and_barangays(session):

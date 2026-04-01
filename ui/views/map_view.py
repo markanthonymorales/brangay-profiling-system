@@ -13,7 +13,10 @@ DAVAO_LAT = 7.0707
 DAVAO_LON = 125.6087
 DEFAULT_ZOOM = 12
 
-OVERLAY_MODES = ["By District", "By Crime Risk", "By Population", "All Markers"]
+OVERLAY_MODES = [
+    "By District", "By Crime Risk", "By Population", "All Markers",
+    "By Traffic Risk", "By Waste Coverage", "By Business Activity", "By Infrastructure",
+]
 
 # District colors
 DISTRICT_COLORS = {
@@ -43,6 +46,58 @@ def _population_color(pop: int | None) -> str:
         return "#1E88E5"   # blue
     else:
         return "#0D47A1"   # dark blue
+
+
+# Traffic risk color thresholds
+def _traffic_risk_color(count: int) -> str:
+    if count == 0:
+        return "#43A047"   # green
+    elif count <= 3:
+        return "#FDD835"   # yellow
+    elif count <= 8:
+        return "#FB8C00"   # orange
+    else:
+        return "#E53935"   # red
+
+
+# Waste coverage color
+def _waste_coverage_color(pct: float | None) -> str:
+    if pct is None:
+        return "#9E9E9E"   # grey
+    elif pct < 50:
+        return "#E53935"   # red
+    elif pct < 70:
+        return "#FB8C00"   # orange
+    elif pct < 85:
+        return "#FDD835"   # yellow
+    else:
+        return "#43A047"   # green
+
+
+# Business activity color
+def _business_activity_color(count: int) -> str:
+    if count == 0:
+        return "#9E9E9E"   # grey
+    elif count < 5:
+        return "#64B5F6"   # light blue
+    elif count <= 15:
+        return "#1E88E5"   # blue
+    else:
+        return "#0D47A1"   # dark blue
+
+
+# Infrastructure (utility avg) color
+def _infrastructure_color(avg_pct: float | None) -> str:
+    if avg_pct is None:
+        return "#9E9E9E"   # grey
+    elif avg_pct < 60:
+        return "#E53935"   # red
+    elif avg_pct < 75:
+        return "#FB8C00"   # orange
+    elif avg_pct < 90:
+        return "#FDD835"   # yellow
+    else:
+        return "#43A047"   # green
 
 
 class MapView(ctk.CTkFrame):
@@ -159,6 +214,18 @@ class MapView(ctk.CTkFrame):
             elif mode == "By Population":
                 color = _population_color(m["population"])
                 legend = "Grey=N/A  Light=<10K  Blue=10-30K  Dark=>30K"
+            elif mode == "By Traffic Risk":
+                color = _traffic_risk_color(m.get("traffic_count", 0))
+                legend = "Green=0  Yellow=1-3  Orange=4-8  Red=9+"
+            elif mode == "By Waste Coverage":
+                color = _waste_coverage_color(m.get("waste_coverage"))
+                legend = "Red=<50%  Orange=50-70%  Yellow=70-85%  Green=85%+"
+            elif mode == "By Business Activity":
+                color = _business_activity_color(m.get("business_count", 0))
+                legend = "Grey=0  Light=<5  Blue=5-15  Dark=15+"
+            elif mode == "By Infrastructure":
+                color = _infrastructure_color(m.get("utility_avg"))
+                legend = "Red=<60%  Orange=60-75%  Yellow=75-90%  Green=90%+"
             else:
                 color = "#1E88E5"
                 legend = "All barangays"
@@ -268,14 +335,6 @@ class MapView(ctk.CTkFrame):
         if not self._marker_data:
             self._load_markers()
 
-        for m in self._marker_data:
-            if query in m["name"].lower():
-                self._map.set_position(m["lat"], m["lon"])
-                self._map.set_zoom(15)
-                self._on_marker_click(m)
-                return
-
-        # Not found — check partial matches
         matches = [m for m in self._marker_data if query in m["name"].lower()]
         if matches:
             m = matches[0]

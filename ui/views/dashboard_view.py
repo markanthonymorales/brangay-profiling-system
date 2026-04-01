@@ -4,16 +4,19 @@ from ui.theme import (
     TEXT_PRIMARY, TEXT_SECONDARY, PRIMARY_COLOR, ACCENT_COLOR, WARNING_COLOR,
     CARD_BG, BG_COLOR, PADDING_LARGE, PADDING_NORMAL,
 )
+from config import DASHBOARD_REFRESH_SECONDS
 from ui.components.stat_card import StatCard
 from ui.components.chart_widget import ChartWidget
 from services.report_service import get_dashboard_stats, get_district_overview
 from services.analytics_service import get_population_by_district
 from services.audit_service import get_recent_activity
+from services.submission_service import get_pending_count
 
 
 class DashboardView(ctk.CTkFrame):
     def __init__(self, master, **kwargs):
         super().__init__(master, fg_color=BG_COLOR, **kwargs)
+        self._refresh_job = None
         self._build_ui()
 
     def _build_ui(self):
@@ -33,6 +36,7 @@ class DashboardView(ctk.CTkFrame):
             ("total_population", "Total Population", "\U0001F465", ACCENT_COLOR),
             ("total_households", "Total Households", "\U0001F3E0", WARNING_COLOR),
             ("active_users", "Active Users", "\U0001F464", "#7B1FA2"),
+            ("pending_submissions", "Pending Submissions", "\U0001F4E5", "#E65100"),
         ]
 
         for i, (key, title, icon, color) in enumerate(card_configs):
@@ -76,13 +80,24 @@ class DashboardView(ctk.CTkFrame):
         self._activity_frame.pack(fill="both", expand=True, padx=PADDING_NORMAL, pady=(0, PADDING_NORMAL))
 
     def refresh(self):
+        # Cancel previous timer to avoid unbounded chain
+        if self._refresh_job:
+            self.after_cancel(self._refresh_job)
+            self._refresh_job = None
+
         stats = get_dashboard_stats()
+        # Add pending submissions count
+        stats["pending_submissions"] = get_pending_count()
+
         for key, card in self._stat_cards.items():
             value = stats.get(key, 0)
             if isinstance(value, int) and value >= 1000:
                 card.set_value(f"{value:,}")
             else:
                 card.set_value(str(value))
+
+        # Schedule auto-refresh
+        self._refresh_job = self.after(DASHBOARD_REFRESH_SECONDS * 1000, self.refresh)
 
         # Population chart
         pop_data = get_population_by_district()

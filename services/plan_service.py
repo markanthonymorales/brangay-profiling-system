@@ -1,6 +1,9 @@
 import logging
 from database.db import get_session
-from database.models import Barangay, PopulationRecord, IncomeData, Utility, CrimeIncident, TrafficIncident
+from database.models import (
+    Barangay, PopulationRecord, IncomeData, Utility,
+    CrimeIncident, TrafficIncident, GovernmentFacility, Business, LandType
+)
 from services.crime_service import get_crime_stats, get_crime_forecast
 from sqlalchemy import func
 from datetime import date, timedelta
@@ -20,7 +23,7 @@ CAT_ECONOMIC = "Economic Development"
 def generate_action_plan(barangay_id: int) -> dict | None:
     session = get_session()
     try:
-        brgy = session.query(Barangay).get(barangay_id)
+        brgy = session.get(Barangay, barangay_id)
         if not brgy:
             return None
 
@@ -202,6 +205,132 @@ def generate_action_plan(barangay_id: int) -> dict | None:
                         "title": f"Rapid population growth — {growth_pct:.1f}% increase",
                         "details": "Rapid growth may strain services. Assess capacity for health centers, schools, and public facilities.",
                     })
+
+        # ── Budget Allocation Estimates ────────────────────────
+        latest_pop = (
+            session.query(PopulationRecord)
+            .filter_by(barangay_id=barangay_id)
+            .order_by(PopulationRecord.year.desc())
+            .first()
+        )
+
+        population = latest_pop.total_population if latest_pop and latest_pop.total_population else 0
+        per_capita_budget = 500  # base PHP per capita
+
+        if population > 0:
+            # Weight by infrastructure gaps
+            infra_gap_weight = 1.0
+            if util:
+                gaps = []
+                if util.water_coverage_pct is not None:
+                    gaps.append(100 - util.water_coverage_pct)
+                if util.power_coverage_pct is not None:
+                    gaps.append(100 - util.power_coverage_pct)
+                if gaps:
+                    avg_gap = sum(gaps) / len(gaps)
+                    infra_gap_weight = 1.0 + (avg_gap / 100) * 0.5  # up to 1.5x
+
+            # Weight by poverty rate
+            poverty_weight = 1.0
+            if income and income.below_poverty_count:
+                total_hh = (income.below_poverty_count + (income.low_income_count or 0) +
+                            (income.middle_income_count or 0) + (income.high_income_count or 0))
+                if total_hh > 0:
+                    poverty_rate = income.below_poverty_count / total_hh
+                    poverty_weight = 1.0 + poverty_rate * 0.5  # up to 1.5x
+
+            estimated_budget = population * per_capita_budget * infra_gap_weight * poverty_weight
+            recommendations.append({
+                "category": CAT_ECONOMIC,
+                "priority": PRIORITY_MEDIUM,
+                "title": f"Estimated annual budget allocation: PHP {estimated_budget:,.0f}",
+                "details": (
+                    f"Based on population of {population:,} at PHP {per_capita_budget}/capita, "
+                    f"weighted by infrastructure gap ({infra_gap_weight:.2f}x) and "
+                    f"poverty factor ({poverty_weight:.2f}x)."
+                ),
+            })
+
+        # ── Emergency Response Readiness ─────────────────────
+        facility_count = (
+            session.query(func.count(GovernmentFacility.id))
+            .filter_by(barangay_id=barangay_id)
+            .scalar()
+        ) or 0
+
+        if population > 0:
+            pop_density = population / (brgy.area_sqkm if brgy.area_sqkm and brgy.area_sqkm > 0 else 1)
+            # Score: higher is worse (less ready)
+            # Factors: fewer facilities, more crime, higher density
+            facility_score = max(0, 3 - facility_count) * 20  # 0-60
+            crime_score = min(crime_count * 3, 40)  # 0-40
+            density_penalty = min(pop_density / 1000, 20)  # 0-20
+            readiness_risk = facility_score + crime_score + density_penalty
+
+            if readiness_risk >= 60:
+                readiness_level = PRIORITY_HIGH
+                readiness_text = "Critical"
+            elif readiness_risk >= 30:
+                readiness_level = PRIORITY_MEDIUM
+                readiness_text = "Moderate"
+            else:
+                readiness_level = PRIORITY_LOW
+                readiness_text = "Adequate"
+
+            recommendations.append({
+                "category": CAT_PUBLIC_SAFETY,
+                "priority": readiness_level,
+                "title": f"Emergency response readiness: {readiness_text} (score: {readiness_risk:.0f})",
+                "details": (
+                    f"Based on {facility_count} facilities, {crime_count} crimes (12mo), "
+                    f"and population density of {pop_density:,.0f}/sq.km. "
+                    f"{'Recommend establishing additional emergency response stations.' if readiness_risk >= 30 else 'Current readiness level is acceptable.'}"
+                ),
+            })
+
+        # ── Social Services Needs ────────────────────────────
+        if income and income.below_poverty_count and income.below_poverty_count > 0:
+            recommendations.append({
+                "category": CAT_COMMUNITY,
+                "priority": PRIORITY_HIGH if income.below_poverty_count >= 100 else PRIORITY_MEDIUM,
+                "title": f"Social services: {income.below_poverty_count} households below poverty line",
+                "details": (
+                    f"Recommend coordination with DSWD for 4Ps (Pantawid Pamilyang Pilipino Program) enrollment. "
+                    f"Conduct community needs assessment for additional social welfare programs. "
+                    f"Identify eligible households for AICS (Assistance to Individuals in Crisis Situations)."
+                ),
+            })
+
+        # ── Business Development Potential ────────────────────
+        active_businesses = (
+            session.query(func.count(Business.id))
+            .filter(Business.barangay_id == barangay_id, Business.is_active == True)
+            .scalar()
+        ) or 0
+
+        commercial_land = (
+            session.query(LandType)
+            .filter(LandType.barangay_id == barangay_id, LandType.type.ilike("%commercial%"))
+            .first()
+        )
+        commercial_pct = commercial_land.percentage if commercial_land and commercial_land.percentage else 0
+
+        if population > 0:
+            avg_income_val = income.average_household_income if income and income.average_household_income else 0
+            biz_potential = "high" if (commercial_pct > 10 or active_businesses > 10 or avg_income_val > 30000) else (
+                "moderate" if (commercial_pct > 5 or active_businesses > 5 or avg_income_val > 15000) else "low"
+            )
+
+            recommendations.append({
+                "category": CAT_ECONOMIC,
+                "priority": PRIORITY_MEDIUM if biz_potential == "high" else PRIORITY_LOW,
+                "title": f"Business development potential: {biz_potential.capitalize()}",
+                "details": (
+                    f"Commercial land: {commercial_pct:.1f}%, Active businesses: {active_businesses}, "
+                    f"Avg income: PHP {avg_income_val:,.0f}. "
+                    f"{'Prioritize business permit streamlining and market development.' if biz_potential == 'high' else 'Consider livelihood training programs and MSME support.' if biz_potential == 'moderate' else 'Focus on basic livelihood programs before commercial development.'}"
+                ),
+            })
 
         # ── No data fallback ──────────────────────────────────
         if not recommendations:
