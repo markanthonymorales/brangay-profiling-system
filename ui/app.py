@@ -89,6 +89,7 @@ class App(ctk.CTk):
         confirm_pw = ctk.CTkEntry(card, placeholder_text="Confirm Password", show="*",
                                   font=(FONT_FAMILY, FONT_SIZE_NORMAL), width=300, height=38)
         confirm_pw.pack(pady=5)
+        confirm_pw.bind("<Return>", lambda e: do_change())
 
         error_label = ctk.CTkLabel(card, text="", font=(FONT_FAMILY, FONT_SIZE_SMALL),
                                    text_color=DANGER_COLOR)
@@ -108,9 +109,9 @@ class App(ctk.CTk):
         ctk.CTkButton(
             card, text="Change Password", command=do_change,
             font=(FONT_FAMILY, FONT_SIZE_NORMAL, "bold"),
-            fg_color=PRIMARY_COLOR, text_color=TEXT_LIGHT,
-            width=300, height=40,
-        ).pack(pady=(10, 20))
+            fg_color="#DAA520", hover_color="#B8860B",
+            text_color="#003366", width=300, height=44, corner_radius=8,
+        ).pack(pady=(5, 10))
 
     def _show_main(self):
         self._clear_window()

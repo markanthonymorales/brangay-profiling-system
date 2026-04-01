@@ -29,7 +29,7 @@ class ChartWidget(ctk.CTkFrame):
     def __init__(self, master, figsize=(6, 4), **kwargs):
         super().__init__(master, fg_color=CARD_BG, corner_radius=12, **kwargs)
         self._figsize = figsize
-        self._canvas = None
+        self._mpl_canvas = None
         self._figure = None
 
     def update_chart(self, draw_func: Callable[[Figure, any], None]):
@@ -41,10 +41,10 @@ class ChartWidget(ctk.CTkFrame):
 
         draw_func(self._figure, ax)
 
-        self._canvas = FigureCanvasTkAgg(self._figure, master=self)
-        canvas_widget = self._canvas.get_tk_widget()
+        self._mpl_canvas = FigureCanvasTkAgg(self._figure, master=self)
+        canvas_widget = self._mpl_canvas.get_tk_widget()
         canvas_widget.pack(fill="both", expand=True, padx=5, pady=5)
-        self._canvas.draw()
+        self._mpl_canvas.draw()
 
     def update_chart_multi(self, draw_func: Callable[[Figure], None]):
         """For charts needing multiple subplots — draw_func receives only the figure."""
@@ -55,15 +55,15 @@ class ChartWidget(ctk.CTkFrame):
 
         draw_func(self._figure)
 
-        self._canvas = FigureCanvasTkAgg(self._figure, master=self)
-        canvas_widget = self._canvas.get_tk_widget()
+        self._mpl_canvas = FigureCanvasTkAgg(self._figure, master=self)
+        canvas_widget = self._mpl_canvas.get_tk_widget()
         canvas_widget.pack(fill="both", expand=True, padx=5, pady=5)
-        self._canvas.draw()
+        self._mpl_canvas.draw()
 
     def clear(self):
-        if self._canvas:
-            self._canvas.get_tk_widget().destroy()
-            self._canvas = None
+        if self._mpl_canvas:
+            self._mpl_canvas.get_tk_widget().destroy()
+            self._mpl_canvas = None
         if self._figure:
             plt.close(self._figure)
             self._figure = None

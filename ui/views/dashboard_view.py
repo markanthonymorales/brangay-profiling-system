@@ -97,7 +97,7 @@ class DashboardView(ctk.CTkFrame):
 
         self._anomaly_badge = ctk.CTkLabel(
             compliance_header, text="",
-            font=(FONT_FAMILY, FONT_SIZE_SMALL, "bold"), text_color=TEXT_LIGHT,
+            font=(FONT_FAMILY, FONT_SIZE_SMALL, "bold"), text_color=TEXT_PRIMARY,
             fg_color=WARNING_COLOR, corner_radius=4, padx=8, pady=2,
         )
         self._anomaly_badge.pack(side="right")

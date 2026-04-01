@@ -44,4 +44,5 @@ desktop.ini
 assets/
 
 # Local Claude config
+.claude/
 .claude.local.md
