@@ -68,19 +68,39 @@ class DisasterView(ctk.CTkFrame):
             font=(FONT_FAMILY, FONT_SIZE_TITLE, "bold"), text_color=TEXT_PRIMARY,
         ).pack(anchor="w", padx=PADDING_LARGE, pady=(PADDING_LARGE, PADDING_NORMAL))
 
-        self._tabview = ctk.CTkTabview(self, fg_color=CARD_BG, corner_radius=12)
+        self._tabview = ctk.CTkTabview(self, fg_color=CARD_BG, corner_radius=12,
+                                        command=self._on_tab_change)
         self._tabview.pack(fill="both", expand=True, padx=PADDING_LARGE, pady=(0, PADDING_LARGE))
 
+        self._built_tabs = set()
+
+        self._tabview.add("Risk Profiles")
+        self._tabview.add("Disaster Incidents")
+        self._tabview.add("Emergency Resources")
+        self._tabview.add("Disaster Overview")
+        self._tabview.add("Resource Status")
+
         self._build_risk_profiles_tab()
-        self._build_disaster_incidents_tab()
-        self._build_emergency_resources_tab()
-        self._build_disaster_overview_tab()
-        self._build_resource_status_tab()
+        self._built_tabs.add("Risk Profiles")
+
+    def _on_tab_change(self):
+        current = self._tabview.get()
+        if current in self._built_tabs:
+            return
+        self._built_tabs.add(current)
+        if current == "Disaster Incidents":
+            self._build_disaster_incidents_tab()
+        elif current == "Emergency Resources":
+            self._build_emergency_resources_tab()
+        elif current == "Disaster Overview":
+            self._build_disaster_overview_tab()
+        elif current == "Resource Status":
+            self._build_resource_status_tab()
 
     # ── Tab 1: Risk Profiles ──────────────────────────────────
 
     def _build_risk_profiles_tab(self):
-        tab = self._tabview.add("Risk Profiles")
+        tab = self._tabview.tab("Risk Profiles")
 
         controls = ctk.CTkFrame(tab, fg_color="transparent")
         controls.pack(fill="x", padx=PADDING_NORMAL, pady=(PADDING_NORMAL, 5))
@@ -334,7 +354,7 @@ class DisasterView(ctk.CTkFrame):
     # ── Tab 2: Disaster Incidents ─────────────────────────────
 
     def _build_disaster_incidents_tab(self):
-        tab = self._tabview.add("Disaster Incidents")
+        tab = self._tabview.tab("Disaster Incidents")
 
         controls = ctk.CTkFrame(tab, fg_color="transparent")
         controls.pack(fill="x", padx=PADDING_NORMAL, pady=(PADDING_NORMAL, 5))
@@ -572,7 +592,7 @@ class DisasterView(ctk.CTkFrame):
     # ── Tab 3: Emergency Resources ────────────────────────────
 
     def _build_emergency_resources_tab(self):
-        tab = self._tabview.add("Emergency Resources")
+        tab = self._tabview.tab("Emergency Resources")
 
         controls = ctk.CTkFrame(tab, fg_color="transparent")
         controls.pack(fill="x", padx=PADDING_NORMAL, pady=(PADDING_NORMAL, 5))
@@ -811,7 +831,7 @@ class DisasterView(ctk.CTkFrame):
     # ── Tab 4: Disaster Overview ──────────────────────────────
 
     def _build_disaster_overview_tab(self):
-        tab = self._tabview.add("Disaster Overview")
+        tab = self._tabview.tab("Disaster Overview")
 
         controls = ctk.CTkFrame(tab, fg_color="transparent")
         controls.pack(fill="x", padx=PADDING_NORMAL, pady=(PADDING_NORMAL, 5))
@@ -911,7 +931,7 @@ class DisasterView(ctk.CTkFrame):
     # ── Tab 5: Resource Status ────────────────────────────────
 
     def _build_resource_status_tab(self):
-        tab = self._tabview.add("Resource Status")
+        tab = self._tabview.tab("Resource Status")
 
         controls = ctk.CTkFrame(tab, fg_color="transparent")
         controls.pack(fill="x", padx=PADDING_NORMAL, pady=(PADDING_NORMAL, 5))

@@ -67,17 +67,33 @@ class BusinessPermitView(ctk.CTkFrame):
             font=(FONT_FAMILY, FONT_SIZE_TITLE, "bold"), text_color=TEXT_PRIMARY,
         ).pack(anchor="w", padx=PADDING_LARGE, pady=(PADDING_LARGE, PADDING_NORMAL))
 
-        self._tabview = ctk.CTkTabview(self, fg_color=CARD_BG, corner_radius=12)
+        self._tabview = ctk.CTkTabview(self, fg_color=CARD_BG, corner_radius=12,
+                                        command=self._on_tab_change)
         self._tabview.pack(fill="both", expand=True, padx=PADDING_LARGE, pady=(0, PADDING_LARGE))
 
+        self._built_tabs = set()
+
+        self._tabview.add("Permits")
+        self._tabview.add("Permit Overview")
+        self._tabview.add("Expiring Permits")
+
         self._build_permits_tab()
-        self._build_overview_tab()
-        self._build_expiring_tab()
+        self._built_tabs.add("Permits")
+
+    def _on_tab_change(self):
+        current = self._tabview.get()
+        if current in self._built_tabs:
+            return
+        self._built_tabs.add(current)
+        if current == "Permit Overview":
+            self._build_overview_tab()
+        elif current == "Expiring Permits":
+            self._build_expiring_tab()
 
     # ── Tab 1: Permits ────────────────────────────────────────
 
     def _build_permits_tab(self):
-        tab = self._tabview.add("Permits")
+        tab = self._tabview.tab("Permits")
 
         controls = ctk.CTkFrame(tab, fg_color="transparent")
         controls.pack(fill="x", padx=PADDING_NORMAL, pady=(PADDING_NORMAL, 5))
@@ -348,7 +364,7 @@ class BusinessPermitView(ctk.CTkFrame):
     # ── Tab 2: Permit Overview ────────────────────────────────
 
     def _build_overview_tab(self):
-        tab = self._tabview.add("Permit Overview")
+        tab = self._tabview.tab("Permit Overview")
 
         controls = ctk.CTkFrame(tab, fg_color="transparent")
         controls.pack(fill="x", padx=PADDING_NORMAL, pady=(PADDING_NORMAL, 5))
@@ -462,7 +478,7 @@ class BusinessPermitView(ctk.CTkFrame):
     # ── Tab 3: Expiring Permits ───────────────────────────────
 
     def _build_expiring_tab(self):
-        tab = self._tabview.add("Expiring Permits")
+        tab = self._tabview.tab("Expiring Permits")
 
         controls = ctk.CTkFrame(tab, fg_color="transparent")
         controls.pack(fill="x", padx=PADDING_NORMAL, pady=(PADDING_NORMAL, 5))

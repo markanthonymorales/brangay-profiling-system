@@ -83,18 +83,46 @@ class DataEntryView(ctk.CTkFrame):
         self._barangay_map = {}
 
         # Tab view for data categories
-        self._tabview = ctk.CTkTabview(self, fg_color=CARD_BG, corner_radius=12)
+        self._tabview = ctk.CTkTabview(self, fg_color=CARD_BG, corner_radius=12,
+                                        command=self._on_tab_change)
         self._tabview.pack(fill="both", expand=True, padx=PADDING_LARGE, pady=(0, PADDING_LARGE))
 
+        self._built_tabs = set()
+
+        self._tabview.add("Population")
+        self._tabview.add("Residents")
+        self._tabview.add("Economic")
+        self._tabview.add("Infrastructure")
+        self._tabview.add("Community")
+        self._tabview.add("Health")
+        self._tabview.add("Social Welfare")
+        self._tabview.add("Disaster Risk")
+        self._tabview.add("Education")
+
         self._build_population_tab()
-        self._build_residents_tab()
-        self._build_economic_tab()
-        self._build_infrastructure_tab()
-        self._build_community_tab()
-        self._build_health_tab()
-        self._build_social_welfare_tab()
-        self._build_disaster_risk_tab()
-        self._build_education_tab()
+        self._built_tabs.add("Population")
+
+    def _on_tab_change(self):
+        current = self._tabview.get()
+        if current in self._built_tabs:
+            return
+        self._built_tabs.add(current)
+        if current == "Residents":
+            self._build_residents_tab()
+        elif current == "Economic":
+            self._build_economic_tab()
+        elif current == "Infrastructure":
+            self._build_infrastructure_tab()
+        elif current == "Community":
+            self._build_community_tab()
+        elif current == "Health":
+            self._build_health_tab()
+        elif current == "Social Welfare":
+            self._build_social_welfare_tab()
+        elif current == "Disaster Risk":
+            self._build_disaster_risk_tab()
+        elif current == "Education":
+            self._build_education_tab()
 
         # Trigger initial load
         if district_names:
@@ -129,7 +157,7 @@ class DataEntryView(ctk.CTkFrame):
     # ── Population Tab ────────────────────────────────────────
 
     def _build_population_tab(self):
-        tab = self._tabview.add("Population")
+        tab = self._tabview.tab("Population")
         scroll = ctk.CTkScrollableFrame(tab, fg_color="transparent")
         scroll.pack(fill="both", expand=True, padx=PADDING_NORMAL, pady=PADDING_NORMAL)
 
@@ -190,7 +218,7 @@ class DataEntryView(ctk.CTkFrame):
     # ── Residents Tab ─────────────────────────────────────────
 
     def _build_residents_tab(self):
-        tab = self._tabview.add("Residents")
+        tab = self._tabview.tab("Residents")
         scroll = ctk.CTkScrollableFrame(tab, fg_color="transparent")
         scroll.pack(fill="both", expand=True, padx=PADDING_NORMAL, pady=PADDING_NORMAL)
 
@@ -236,7 +264,7 @@ class DataEntryView(ctk.CTkFrame):
     # ── Economic Tab ──────────────────────────────────────────
 
     def _build_economic_tab(self):
-        tab = self._tabview.add("Economic")
+        tab = self._tabview.tab("Economic")
         scroll = ctk.CTkScrollableFrame(tab, fg_color="transparent")
         scroll.pack(fill="both", expand=True, padx=PADDING_NORMAL, pady=PADDING_NORMAL)
 
@@ -353,7 +381,7 @@ class DataEntryView(ctk.CTkFrame):
     # ── Infrastructure Tab ────────────────────────────────────
 
     def _build_infrastructure_tab(self):
-        tab = self._tabview.add("Infrastructure")
+        tab = self._tabview.tab("Infrastructure")
         scroll = ctk.CTkScrollableFrame(tab, fg_color="transparent")
         scroll.pack(fill="both", expand=True, padx=PADDING_NORMAL, pady=PADDING_NORMAL)
 
@@ -476,7 +504,7 @@ class DataEntryView(ctk.CTkFrame):
     # ── Community Tab ─────────────────────────────────────────
 
     def _build_community_tab(self):
-        tab = self._tabview.add("Community")
+        tab = self._tabview.tab("Community")
         scroll = ctk.CTkScrollableFrame(tab, fg_color="transparent")
         scroll.pack(fill="both", expand=True, padx=PADDING_NORMAL, pady=PADDING_NORMAL)
 
@@ -625,7 +653,7 @@ class DataEntryView(ctk.CTkFrame):
     # ── Health Tab ────────────────────────────────────────────
 
     def _build_health_tab(self):
-        tab = self._tabview.add("Health")
+        tab = self._tabview.tab("Health")
         scroll = ctk.CTkScrollableFrame(tab, fg_color="transparent")
         scroll.pack(fill="both", expand=True, padx=PADDING_NORMAL, pady=PADDING_NORMAL)
 
@@ -691,7 +719,7 @@ class DataEntryView(ctk.CTkFrame):
     # ── Social Welfare Tab ────────────────────────────────────
 
     def _build_social_welfare_tab(self):
-        tab = self._tabview.add("Social Welfare")
+        tab = self._tabview.tab("Social Welfare")
         scroll = ctk.CTkScrollableFrame(tab, fg_color="transparent")
         scroll.pack(fill="both", expand=True, padx=PADDING_NORMAL, pady=PADDING_NORMAL)
 
@@ -739,7 +767,7 @@ class DataEntryView(ctk.CTkFrame):
     # ── Disaster Risk Tab ─────────────────────────────────────
 
     def _build_disaster_risk_tab(self):
-        tab = self._tabview.add("Disaster Risk")
+        tab = self._tabview.tab("Disaster Risk")
         scroll = ctk.CTkScrollableFrame(tab, fg_color="transparent")
         scroll.pack(fill="both", expand=True, padx=PADDING_NORMAL, pady=PADDING_NORMAL)
 
@@ -812,7 +840,7 @@ class DataEntryView(ctk.CTkFrame):
     # ── Education Tab ─────────────────────────────────────────
 
     def _build_education_tab(self):
-        tab = self._tabview.add("Education")
+        tab = self._tabview.tab("Education")
         scroll = ctk.CTkScrollableFrame(tab, fg_color="transparent")
         scroll.pack(fill="both", expand=True, padx=PADDING_NORMAL, pady=PADDING_NORMAL)
 

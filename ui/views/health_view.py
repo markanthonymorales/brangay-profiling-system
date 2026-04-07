@@ -59,18 +59,36 @@ class HealthView(ctk.CTkFrame):
             font=(FONT_FAMILY, FONT_SIZE_TITLE, "bold"), text_color=TEXT_PRIMARY,
         ).pack(anchor="w", padx=PADDING_LARGE, pady=(PADDING_LARGE, PADDING_NORMAL))
 
-        self._tabview = ctk.CTkTabview(self, fg_color=CARD_BG, corner_radius=12)
+        self._tabview = ctk.CTkTabview(self, fg_color=CARD_BG, corner_radius=12,
+                                        command=self._on_tab_change)
         self._tabview.pack(fill="both", expand=True, padx=PADDING_LARGE, pady=(0, PADDING_LARGE))
 
+        self._built_tabs = set()
+
+        self._tabview.add("Health Statistics")
+        self._tabview.add("Social Welfare")
+        self._tabview.add("Health Overview")
+        self._tabview.add("High-Risk Areas")
+
         self._build_health_statistics_tab()
-        self._build_social_welfare_tab()
-        self._build_health_overview_tab()
-        self._build_high_risk_tab()
+        self._built_tabs.add("Health Statistics")
+
+    def _on_tab_change(self):
+        current = self._tabview.get()
+        if current in self._built_tabs:
+            return
+        self._built_tabs.add(current)
+        if current == "Social Welfare":
+            self._build_social_welfare_tab()
+        elif current == "Health Overview":
+            self._build_health_overview_tab()
+        elif current == "High-Risk Areas":
+            self._build_high_risk_tab()
 
     # ── Tab 1: Health Statistics ──────────────────────────────
 
     def _build_health_statistics_tab(self):
-        tab = self._tabview.add("Health Statistics")
+        tab = self._tabview.tab("Health Statistics")
 
         controls = ctk.CTkFrame(tab, fg_color="transparent")
         controls.pack(fill="x", padx=PADDING_NORMAL, pady=(PADDING_NORMAL, 5))
@@ -367,7 +385,7 @@ class HealthView(ctk.CTkFrame):
     # ── Tab 2: Social Welfare ─────────────────────────────────
 
     def _build_social_welfare_tab(self):
-        tab = self._tabview.add("Social Welfare")
+        tab = self._tabview.tab("Social Welfare")
 
         controls = ctk.CTkFrame(tab, fg_color="transparent")
         controls.pack(fill="x", padx=PADDING_NORMAL, pady=(PADDING_NORMAL, 5))
@@ -601,7 +619,7 @@ class HealthView(ctk.CTkFrame):
     # ── Tab 3: Health Overview ────────────────────────────────
 
     def _build_health_overview_tab(self):
-        tab = self._tabview.add("Health Overview")
+        tab = self._tabview.tab("Health Overview")
 
         controls = ctk.CTkFrame(tab, fg_color="transparent")
         controls.pack(fill="x", padx=PADDING_NORMAL, pady=(PADDING_NORMAL, 5))
@@ -756,7 +774,7 @@ class HealthView(ctk.CTkFrame):
     # ── Tab 4: High Risk Areas ────────────────────────────────
 
     def _build_high_risk_tab(self):
-        tab = self._tabview.add("High-Risk Areas")
+        tab = self._tabview.tab("High-Risk Areas")
 
         controls = ctk.CTkFrame(tab, fg_color="transparent")
         controls.pack(fill="x", padx=PADDING_NORMAL, pady=(PADDING_NORMAL, 5))
