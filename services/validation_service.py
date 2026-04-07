@@ -9,12 +9,19 @@ REQUIRED_FIELDS = {
     "income_data": ["average_household_income"],
     "utilities": ["water_coverage_pct", "power_coverage_pct"],
     "waste_management": ["coverage_pct"],
+    "health_statistics": ["vaccination_coverage_pct"],
+    "social_welfare_data": ["fourps_beneficiaries"],
+    "education_statistics": ["total_enrollees", "school_count"],
+    "disaster_risk_profiles": [],
+    "business_permits": ["business_name", "owner_name"],
 }
 
 # Fields that should be percentages (0-100)
 PERCENTAGE_FIELDS = {
     "utilities": ["water_coverage_pct", "power_coverage_pct", "internet_coverage_pct"],
     "waste_management": ["coverage_pct"],
+    "health_statistics": ["vaccination_coverage_pct", "malnutrition_rate"],
+    "education_statistics": ["literacy_rate", "dropout_rate"],
 }
 
 

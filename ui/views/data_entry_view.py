@@ -14,6 +14,10 @@ from services.resident_service import save_resident_category
 from services.economic_service import save_income_record, save_business
 from services.infrastructure_service import save_utility_record, save_waste_record, save_land_type
 from services.community_service import save_food_source, save_government_facility, save_religious_demographic
+from services.health_service import save_health_statistics
+from services.social_welfare_service import save_social_welfare_data
+from services.disaster_service import save_disaster_risk_profile
+from services.education_service import save_education_statistics
 from utils.validators import validate_required, validate_positive_int, validate_percentage, validate_year, parse_int, parse_float
 from datetime import datetime
 
@@ -79,14 +83,46 @@ class DataEntryView(ctk.CTkFrame):
         self._barangay_map = {}
 
         # Tab view for data categories
-        self._tabview = ctk.CTkTabview(self, fg_color=CARD_BG, corner_radius=12)
+        self._tabview = ctk.CTkTabview(self, fg_color=CARD_BG, corner_radius=12,
+                                        command=self._on_tab_change)
         self._tabview.pack(fill="both", expand=True, padx=PADDING_LARGE, pady=(0, PADDING_LARGE))
 
+        self._built_tabs = set()
+
+        self._tabview.add("Population")
+        self._tabview.add("Residents")
+        self._tabview.add("Economic")
+        self._tabview.add("Infrastructure")
+        self._tabview.add("Community")
+        self._tabview.add("Health")
+        self._tabview.add("Social Welfare")
+        self._tabview.add("Disaster Risk")
+        self._tabview.add("Education")
+
         self._build_population_tab()
-        self._build_residents_tab()
-        self._build_economic_tab()
-        self._build_infrastructure_tab()
-        self._build_community_tab()
+        self._built_tabs.add("Population")
+
+    def _on_tab_change(self):
+        current = self._tabview.get()
+        if current in self._built_tabs:
+            return
+        self._built_tabs.add(current)
+        if current == "Residents":
+            self._build_residents_tab()
+        elif current == "Economic":
+            self._build_economic_tab()
+        elif current == "Infrastructure":
+            self._build_infrastructure_tab()
+        elif current == "Community":
+            self._build_community_tab()
+        elif current == "Health":
+            self._build_health_tab()
+        elif current == "Social Welfare":
+            self._build_social_welfare_tab()
+        elif current == "Disaster Risk":
+            self._build_disaster_risk_tab()
+        elif current == "Education":
+            self._build_education_tab()
 
         # Trigger initial load
         if district_names:
@@ -121,7 +157,7 @@ class DataEntryView(ctk.CTkFrame):
     # ── Population Tab ────────────────────────────────────────
 
     def _build_population_tab(self):
-        tab = self._tabview.add("Population")
+        tab = self._tabview.tab("Population")
         scroll = ctk.CTkScrollableFrame(tab, fg_color="transparent")
         scroll.pack(fill="both", expand=True, padx=PADDING_NORMAL, pady=PADDING_NORMAL)
 
@@ -182,7 +218,7 @@ class DataEntryView(ctk.CTkFrame):
     # ── Residents Tab ─────────────────────────────────────────
 
     def _build_residents_tab(self):
-        tab = self._tabview.add("Residents")
+        tab = self._tabview.tab("Residents")
         scroll = ctk.CTkScrollableFrame(tab, fg_color="transparent")
         scroll.pack(fill="both", expand=True, padx=PADDING_NORMAL, pady=PADDING_NORMAL)
 
@@ -228,7 +264,7 @@ class DataEntryView(ctk.CTkFrame):
     # ── Economic Tab ──────────────────────────────────────────
 
     def _build_economic_tab(self):
-        tab = self._tabview.add("Economic")
+        tab = self._tabview.tab("Economic")
         scroll = ctk.CTkScrollableFrame(tab, fg_color="transparent")
         scroll.pack(fill="both", expand=True, padx=PADDING_NORMAL, pady=PADDING_NORMAL)
 
@@ -345,7 +381,7 @@ class DataEntryView(ctk.CTkFrame):
     # ── Infrastructure Tab ────────────────────────────────────
 
     def _build_infrastructure_tab(self):
-        tab = self._tabview.add("Infrastructure")
+        tab = self._tabview.tab("Infrastructure")
         scroll = ctk.CTkScrollableFrame(tab, fg_color="transparent")
         scroll.pack(fill="both", expand=True, padx=PADDING_NORMAL, pady=PADDING_NORMAL)
 
@@ -468,7 +504,7 @@ class DataEntryView(ctk.CTkFrame):
     # ── Community Tab ─────────────────────────────────────────
 
     def _build_community_tab(self):
-        tab = self._tabview.add("Community")
+        tab = self._tabview.tab("Community")
         scroll = ctk.CTkScrollableFrame(tab, fg_color="transparent")
         scroll.pack(fill="both", expand=True, padx=PADDING_NORMAL, pady=PADDING_NORMAL)
 
@@ -613,6 +649,254 @@ class DataEntryView(ctk.CTkFrame):
             self._rel_religion.clear()
             self._rel_count.clear()
             self._rel_pct.clear()
+
+    # ── Health Tab ────────────────────────────────────────────
+
+    def _build_health_tab(self):
+        tab = self._tabview.tab("Health")
+        scroll = ctk.CTkScrollableFrame(tab, fg_color="transparent")
+        scroll.pack(fill="both", expand=True, padx=PADDING_NORMAL, pady=PADDING_NORMAL)
+
+        fields_frame = ctk.CTkFrame(scroll, fg_color="transparent")
+        fields_frame.pack(fill="x")
+
+        self._health_fields = {}
+        field_defs = [
+            ("dengue_cases", "Dengue Cases", "number"),
+            ("tuberculosis_cases", "Tuberculosis Cases", "number"),
+            ("covid_cases", "COVID Cases", "number"),
+            ("diarrhea_cases", "Diarrhea Cases", "number"),
+            ("pneumonia_cases", "Pneumonia Cases", "number"),
+            ("hypertension_cases", "Hypertension Cases", "number"),
+            ("diabetes_cases", "Diabetes Cases", "number"),
+            ("other_disease_cases", "Other Disease Cases", "number"),
+            ("vaccination_coverage_pct", "Vaccination Coverage %", "entry"),
+            ("malnutrition_rate", "Malnutrition Rate %", "entry"),
+            ("hospital_count", "Hospital Count", "number"),
+            ("clinic_count", "Clinic Count", "number"),
+            ("health_worker_count", "Health Worker Count", "number"),
+            ("maternal_mortality", "Maternal Mortality", "number"),
+            ("infant_mortality", "Infant Mortality", "number"),
+        ]
+
+        for i, (key, label, ftype) in enumerate(field_defs):
+            if ftype == "number":
+                field = LabeledNumberEntry(fields_frame, label=label, placeholder="0")
+            else:
+                field = LabeledEntry(fields_frame, label=label, placeholder="0.0")
+            row, col = divmod(i, 3)
+            field.grid(row=row, column=col, padx=5, pady=5, sticky="ew")
+            fields_frame.columnconfigure(col, weight=1)
+            self._health_fields[key] = field
+
+        ctk.CTkButton(
+            scroll, text="Save Health Statistics", command=self._save_health,
+            font=(FONT_FAMILY, FONT_SIZE_NORMAL, "bold"),
+            fg_color=ACCENT_COLOR, text_color=TEXT_LIGHT, height=40,
+        ).pack(pady=(PADDING_LARGE, 0))
+
+    def _save_health(self):
+        if not self._selected_barangay_id:
+            MessageDialog(self, title="Error", message="Please select a barangay.", dialog_type="error")
+            return
+        year = self._get_year()
+        if year is None:
+            return
+
+        data = {}
+        for key, field in self._health_fields.items():
+            if key in ("vaccination_coverage_pct", "malnutrition_rate"):
+                data[key] = parse_float(field.get())
+            else:
+                data[key] = field.get_int() if hasattr(field, "get_int") else parse_int(field.get())
+
+        success, msg = save_health_statistics(
+            self._selected_barangay_id, year, data, self._get_user_id()
+        )
+        dialog_type = "success" if success else "error"
+        MessageDialog(self, title="Health Statistics", message=msg, dialog_type=dialog_type)
+
+    # ── Social Welfare Tab ────────────────────────────────────
+
+    def _build_social_welfare_tab(self):
+        tab = self._tabview.tab("Social Welfare")
+        scroll = ctk.CTkScrollableFrame(tab, fg_color="transparent")
+        scroll.pack(fill="both", expand=True, padx=PADDING_NORMAL, pady=PADDING_NORMAL)
+
+        fields_frame = ctk.CTkFrame(scroll, fg_color="transparent")
+        fields_frame.pack(fill="x")
+
+        self._sw_fields = {}
+        field_defs = [
+            ("fourps_beneficiaries", "4Ps Beneficiaries"),
+            ("senior_citizen_count", "Senior Citizen Count"),
+            ("pwd_count", "PWD Count"),
+            ("solo_parent_count", "Solo Parent Count"),
+            ("indigent_families", "Indigent Families"),
+            ("nutrition_program_beneficiaries", "Nutrition Program Beneficiaries"),
+        ]
+
+        for i, (key, label) in enumerate(field_defs):
+            field = LabeledNumberEntry(fields_frame, label=label, placeholder="0")
+            row, col = divmod(i, 3)
+            field.grid(row=row, column=col, padx=5, pady=5, sticky="ew")
+            fields_frame.columnconfigure(col, weight=1)
+            self._sw_fields[key] = field
+
+        ctk.CTkButton(
+            scroll, text="Save Social Welfare Data", command=self._save_social_welfare,
+            font=(FONT_FAMILY, FONT_SIZE_NORMAL, "bold"),
+            fg_color=ACCENT_COLOR, text_color=TEXT_LIGHT, height=40,
+        ).pack(pady=(PADDING_LARGE, 0))
+
+    def _save_social_welfare(self):
+        if not self._selected_barangay_id:
+            MessageDialog(self, title="Error", message="Please select a barangay.", dialog_type="error")
+            return
+        year = self._get_year()
+        if year is None:
+            return
+
+        data = {key: field.get_int() for key, field in self._sw_fields.items()}
+        success, msg = save_social_welfare_data(
+            self._selected_barangay_id, year, data, self._get_user_id()
+        )
+        dialog_type = "success" if success else "error"
+        MessageDialog(self, title="Social Welfare Data", message=msg, dialog_type=dialog_type)
+
+    # ── Disaster Risk Tab ─────────────────────────────────────
+
+    def _build_disaster_risk_tab(self):
+        tab = self._tabview.tab("Disaster Risk")
+        scroll = ctk.CTkScrollableFrame(tab, fg_color="transparent")
+        scroll.pack(fill="both", expand=True, padx=PADDING_NORMAL, pady=PADDING_NORMAL)
+
+        fields_frame = ctk.CTkFrame(scroll, fg_color="transparent")
+        fields_frame.pack(fill="x")
+
+        self._dr_fields = {}
+
+        # Checkboxes row
+        check_frame = ctk.CTkFrame(fields_frame, fg_color="transparent")
+        check_frame.grid(row=0, column=0, columnspan=3, padx=5, pady=5, sticky="ew")
+
+        self._dr_flood_prone = ctk.CTkCheckBox(check_frame, text="Flood Prone")
+        self._dr_flood_prone.pack(side="left", padx=(0, 20))
+
+        self._dr_landslide_prone = ctk.CTkCheckBox(check_frame, text="Landslide Prone")
+        self._dr_landslide_prone.pack(side="left")
+
+        # Dropdowns
+        risk_defs = [
+            ("fire_risk_level", "Fire Risk Level"),
+            ("earthquake_risk", "Earthquake Risk"),
+            ("storm_surge_risk", "Storm Surge Risk"),
+        ]
+        for i, (key, label) in enumerate(risk_defs):
+            field = LabeledDropdown(fields_frame, label=label, values=["low", "medium", "high"])
+            field.grid(row=1, column=i, padx=5, pady=5, sticky="ew")
+            fields_frame.columnconfigure(i, weight=1)
+            self._dr_fields[key] = field
+
+        # Number entries
+        num_defs = [
+            ("evacuation_center_count", "Evacuation Center Count"),
+            ("evacuation_capacity", "Evacuation Capacity"),
+        ]
+        for i, (key, label) in enumerate(num_defs):
+            field = LabeledNumberEntry(fields_frame, label=label, placeholder="0")
+            field.grid(row=2, column=i, padx=5, pady=5, sticky="ew")
+            self._dr_fields[key] = field
+
+        ctk.CTkButton(
+            scroll, text="Save Disaster Risk Profile", command=self._save_disaster_risk,
+            font=(FONT_FAMILY, FONT_SIZE_NORMAL, "bold"),
+            fg_color=ACCENT_COLOR, text_color=TEXT_LIGHT, height=40,
+        ).pack(pady=(PADDING_LARGE, 0))
+
+    def _save_disaster_risk(self):
+        if not self._selected_barangay_id:
+            MessageDialog(self, title="Error", message="Please select a barangay.", dialog_type="error")
+            return
+        year = self._get_year()
+        if year is None:
+            return
+
+        data = {
+            "flood_prone": bool(self._dr_flood_prone.get()),
+            "landslide_prone": bool(self._dr_landslide_prone.get()),
+            "fire_risk_level": self._dr_fields["fire_risk_level"].get(),
+            "earthquake_risk": self._dr_fields["earthquake_risk"].get(),
+            "storm_surge_risk": self._dr_fields["storm_surge_risk"].get(),
+            "evacuation_center_count": self._dr_fields["evacuation_center_count"].get_int(),
+            "evacuation_capacity": self._dr_fields["evacuation_capacity"].get_int(),
+        }
+        success, msg = save_disaster_risk_profile(
+            self._selected_barangay_id, year, data, self._get_user_id()
+        )
+        dialog_type = "success" if success else "error"
+        MessageDialog(self, title="Disaster Risk Profile", message=msg, dialog_type=dialog_type)
+
+    # ── Education Tab ─────────────────────────────────────────
+
+    def _build_education_tab(self):
+        tab = self._tabview.tab("Education")
+        scroll = ctk.CTkScrollableFrame(tab, fg_color="transparent")
+        scroll.pack(fill="both", expand=True, padx=PADDING_NORMAL, pady=PADDING_NORMAL)
+
+        fields_frame = ctk.CTkFrame(scroll, fg_color="transparent")
+        fields_frame.pack(fill="x")
+
+        self._edu_fields = {}
+        field_defs = [
+            ("total_enrollees", "Total Enrollees", "number"),
+            ("elementary_count", "Elementary Count", "number"),
+            ("highschool_count", "High School Count", "number"),
+            ("college_count", "College Count", "number"),
+            ("out_of_school_youth", "Out-of-School Youth", "number"),
+            ("school_count", "School Count", "number"),
+            ("teacher_count", "Teacher Count", "number"),
+            ("classroom_count", "Classroom Count", "number"),
+            ("literacy_rate", "Literacy Rate %", "entry"),
+            ("dropout_rate", "Dropout Rate %", "entry"),
+        ]
+
+        for i, (key, label, ftype) in enumerate(field_defs):
+            if ftype == "number":
+                field = LabeledNumberEntry(fields_frame, label=label, placeholder="0")
+            else:
+                field = LabeledEntry(fields_frame, label=label, placeholder="0.0")
+            row, col = divmod(i, 3)
+            field.grid(row=row, column=col, padx=5, pady=5, sticky="ew")
+            fields_frame.columnconfigure(col, weight=1)
+            self._edu_fields[key] = field
+
+        ctk.CTkButton(
+            scroll, text="Save Education Statistics", command=self._save_education,
+            font=(FONT_FAMILY, FONT_SIZE_NORMAL, "bold"),
+            fg_color=ACCENT_COLOR, text_color=TEXT_LIGHT, height=40,
+        ).pack(pady=(PADDING_LARGE, 0))
+
+    def _save_education(self):
+        if not self._selected_barangay_id:
+            MessageDialog(self, title="Error", message="Please select a barangay.", dialog_type="error")
+            return
+        year = self._get_year()
+        if year is None:
+            return
+
+        data = {}
+        for key, field in self._edu_fields.items():
+            if key in ("literacy_rate", "dropout_rate"):
+                data[key] = parse_float(field.get())
+            else:
+                data[key] = field.get_int() if hasattr(field, "get_int") else parse_int(field.get())
+
+        success, msg = save_education_statistics(
+            self._selected_barangay_id, year, data, self._get_user_id()
+        )
+        dialog_type = "success" if success else "error"
+        MessageDialog(self, title="Education Statistics", message=msg, dialog_type=dialog_type)
 
     def refresh(self):
         pass

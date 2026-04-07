@@ -1,9 +1,15 @@
 import logging
+from functools import lru_cache
 from sqlalchemy import func
 from database.db import get_session
 from database.models import Barangay, District, PopulationRecord
 
 logger = logging.getLogger(__name__)
+
+# Module-level caches for static geography data (3 districts, 182 barangays).
+# These never change at runtime so we cache after first DB hit.
+_districts_cache: list[dict] | None = None
+_barangays_by_district_cache: dict[int, list[dict]] = {}
 
 
 def get_all_barangays() -> list[dict]:
@@ -58,6 +64,8 @@ def get_barangay_by_id(barangay_id: int) -> dict | None:
 
 
 def get_barangays_by_district(district_id: int) -> list[dict]:
+    if district_id in _barangays_by_district_cache:
+        return _barangays_by_district_cache[district_id]
     session = get_session()
     try:
         barangays = (
@@ -66,7 +74,9 @@ def get_barangays_by_district(district_id: int) -> list[dict]:
             .order_by(Barangay.name)
             .all()
         )
-        return [{"id": b.id, "name": b.name} for b in barangays]
+        result = [{"id": b.id, "name": b.name} for b in barangays]
+        _barangays_by_district_cache[district_id] = result
+        return result
     finally:
         session.close()
 
@@ -108,10 +118,14 @@ def search_barangays(search_term: str, district_id: int | None = None,
 
 
 def get_all_districts() -> list[dict]:
+    global _districts_cache
+    if _districts_cache is not None:
+        return _districts_cache
     session = get_session()
     try:
         districts = session.query(District).order_by(District.name).all()
-        return [{"id": d.id, "name": d.name} for d in districts]
+        _districts_cache = [{"id": d.id, "name": d.name} for d in districts]
+        return _districts_cache
     finally:
         session.close()
 

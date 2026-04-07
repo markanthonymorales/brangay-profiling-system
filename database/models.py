@@ -115,6 +115,13 @@ class Barangay(TimestampMixin, Base):
     religious_demographics = relationship("ReligiousDemographic", back_populates="barangay")
     crime_incidents = relationship("CrimeIncident", back_populates="barangay")
     traffic_incidents = relationship("TrafficIncident", back_populates="barangay")
+    health_statistics = relationship("HealthStatistics", back_populates="barangay")
+    social_welfare_data = relationship("SocialWelfareData", back_populates="barangay")
+    disaster_risk_profiles = relationship("DisasterRiskProfile", back_populates="barangay")
+    disaster_incidents = relationship("DisasterIncident", back_populates="barangay")
+    emergency_resources = relationship("EmergencyResource", back_populates="barangay")
+    education_statistics = relationship("EducationStatistics", back_populates="barangay")
+    business_permits = relationship("BusinessPermit", back_populates="barangay")
 
 
 # ── Population & Demographics ─────────────────────────────────
@@ -310,6 +317,187 @@ class TrafficIncident(TimestampMixin, Base):
     barangay = relationship("Barangay", back_populates="traffic_incidents")
 
 
+# ── Health & Social Welfare ──────────────────────────────────
+
+class HealthStatistics(TimestampMixin, Base):
+    __tablename__ = "health_statistics"
+    __table_args__ = (UniqueConstraint("barangay_id", "year", name="uq_health_barangay_year"),)
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    barangay_id = Column(Integer, ForeignKey("barangays.id"), nullable=False)
+    year = Column(Integer, nullable=False)
+    dengue_cases = Column(Integer, nullable=True)
+    tuberculosis_cases = Column(Integer, nullable=True)
+    covid_cases = Column(Integer, nullable=True)
+    diarrhea_cases = Column(Integer, nullable=True)
+    pneumonia_cases = Column(Integer, nullable=True)
+    hypertension_cases = Column(Integer, nullable=True)
+    diabetes_cases = Column(Integer, nullable=True)
+    other_disease_cases = Column(Integer, nullable=True)
+    vaccination_coverage_pct = Column(Float, nullable=True)
+    hospital_count = Column(Integer, nullable=True)
+    clinic_count = Column(Integer, nullable=True)
+    health_worker_count = Column(Integer, nullable=True)
+    maternal_mortality = Column(Integer, nullable=True)
+    infant_mortality = Column(Integer, nullable=True)
+    malnutrition_rate = Column(Float, nullable=True)
+
+    barangay = relationship("Barangay", back_populates="health_statistics")
+
+
+class SocialWelfareData(TimestampMixin, Base):
+    __tablename__ = "social_welfare_data"
+    __table_args__ = (UniqueConstraint("barangay_id", "year", name="uq_social_welfare_barangay_year"),)
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    barangay_id = Column(Integer, ForeignKey("barangays.id"), nullable=False)
+    year = Column(Integer, nullable=False)
+    fourps_beneficiaries = Column(Integer, nullable=True)
+    senior_citizen_count = Column(Integer, nullable=True)
+    pwd_count = Column(Integer, nullable=True)
+    solo_parent_count = Column(Integer, nullable=True)
+    indigent_families = Column(Integer, nullable=True)
+    nutrition_program_beneficiaries = Column(Integer, nullable=True)
+
+    barangay = relationship("Barangay", back_populates="social_welfare_data")
+
+
+# ── Disaster & Safety ────────────────────────────────────────
+
+class DisasterRiskProfile(TimestampMixin, Base):
+    __tablename__ = "disaster_risk_profiles"
+    __table_args__ = (UniqueConstraint("barangay_id", "year", name="uq_disaster_risk_barangay_year"),)
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    barangay_id = Column(Integer, ForeignKey("barangays.id"), nullable=False)
+    year = Column(Integer, nullable=False)
+    flood_prone = Column(Boolean, default=False, nullable=False)
+    landslide_prone = Column(Boolean, default=False, nullable=False)
+    fire_risk_level = Column(String(20), nullable=True)
+    earthquake_risk = Column(String(20), nullable=True)
+    storm_surge_risk = Column(String(20), nullable=True)
+    evacuation_center_count = Column(Integer, nullable=True)
+    evacuation_capacity = Column(Integer, nullable=True)
+
+    barangay = relationship("Barangay", back_populates="disaster_risk_profiles")
+
+
+class DisasterIncident(TimestampMixin, Base):
+    __tablename__ = "disaster_incidents"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    barangay_id = Column(Integer, ForeignKey("barangays.id"), nullable=False)
+    disaster_type = Column(String(50), nullable=False)
+    severity = Column(String(20), nullable=False, default="low")
+    date_occurred = Column(Date, nullable=False)
+    affected_families = Column(Integer, nullable=True)
+    casualties = Column(Integer, nullable=True)
+    damages_estimated = Column(Float, nullable=True)
+    status = Column(String(20), nullable=False, default="reported")
+    response_team = Column(String(200), nullable=True)
+    description = Column(Text, nullable=True)
+
+    barangay = relationship("Barangay", back_populates="disaster_incidents")
+
+
+class EmergencyResource(TimestampMixin, Base):
+    __tablename__ = "emergency_resources"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    barangay_id = Column(Integer, ForeignKey("barangays.id"), nullable=False)
+    resource_type = Column(String(50), nullable=False)
+    name = Column(String(200), nullable=False)
+    quantity = Column(Float, nullable=True)
+    unit = Column(String(50), nullable=True)
+    location_description = Column(Text, nullable=True)
+    last_restocked = Column(Date, nullable=True)
+    expiry_date = Column(Date, nullable=True)
+
+    barangay = relationship("Barangay", back_populates="emergency_resources")
+
+
+# ── Education ────────────────────────────────────────────────
+
+class EducationStatistics(TimestampMixin, Base):
+    __tablename__ = "education_statistics"
+    __table_args__ = (UniqueConstraint("barangay_id", "year", name="uq_education_barangay_year"),)
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    barangay_id = Column(Integer, ForeignKey("barangays.id"), nullable=False)
+    year = Column(Integer, nullable=False)
+    total_enrollees = Column(Integer, nullable=True)
+    elementary_count = Column(Integer, nullable=True)
+    highschool_count = Column(Integer, nullable=True)
+    college_count = Column(Integer, nullable=True)
+    out_of_school_youth = Column(Integer, nullable=True)
+    literacy_rate = Column(Float, nullable=True)
+    school_count = Column(Integer, nullable=True)
+    teacher_count = Column(Integer, nullable=True)
+    classroom_count = Column(Integer, nullable=True)
+    dropout_rate = Column(Float, nullable=True)
+
+    barangay = relationship("Barangay", back_populates="education_statistics")
+
+
+# ── Business Permits ─────────────────────────────────────────
+
+class BusinessPermit(TimestampMixin, Base):
+    __tablename__ = "business_permits"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    barangay_id = Column(Integer, ForeignKey("barangays.id"), nullable=False)
+    business_name = Column(String(200), nullable=False)
+    owner_name = Column(String(200), nullable=False)
+    business_type = Column(String(100), nullable=True)
+    permit_number = Column(String(50), nullable=True, unique=True)
+    date_issued = Column(Date, nullable=True)
+    date_expiry = Column(Date, nullable=True)
+    status = Column(String(20), nullable=False, default="active")
+    annual_revenue = Column(Float, nullable=True)
+    employee_count = Column(Integer, nullable=True)
+    address = Column(Text, nullable=True)
+
+    barangay = relationship("Barangay", back_populates="business_permits")
+
+
+# ── Cross-Department Sync & Alerts ───────────────────────────
+
+class DepartmentDataSync(TimestampMixin, Base):
+    __tablename__ = "department_data_sync"
+    __table_args__ = (
+        UniqueConstraint("department_name", "barangay_id", name="uq_dept_sync_dept_brgy"),
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    department_name = Column(String(100), nullable=False)
+    barangay_id = Column(Integer, ForeignKey("barangays.id"), nullable=False)
+    last_synced = Column(DateTime, nullable=True)
+    sync_status = Column(String(20), nullable=False, default="pending")
+    record_count = Column(Integer, nullable=True)
+    synced_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+    barangay = relationship("Barangay")
+    user = relationship("User")
+
+
+class CrossDepartmentAlert(TimestampMixin, Base):
+    __tablename__ = "cross_department_alerts"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    barangay_id = Column(Integer, ForeignKey("barangays.id"), nullable=False)
+    alert_type = Column(String(100), nullable=False)
+    severity = Column(String(20), nullable=False, default="warning")
+    title = Column(String(200), nullable=False)
+    message = Column(Text, nullable=True)
+    source_tables = Column(Text, nullable=True)
+    is_resolved = Column(Boolean, default=False, nullable=False)
+    resolved_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    resolved_at = Column(DateTime, nullable=True)
+
+    barangay = relationship("Barangay")
+    resolver = relationship("User")
+
+
 # ── Notifications ────────────────────────────────────────────
 
 class Notification(TimestampMixin, Base):
@@ -391,6 +579,11 @@ class BarangaySubmissionStatus(TimestampMixin, Base):
     utilities_submitted = Column(Boolean, default=False, nullable=False)
     crime_submitted = Column(Boolean, default=False, nullable=False)
     waste_submitted = Column(Boolean, default=False, nullable=False)
+    health_submitted = Column(Boolean, default=False, nullable=False)
+    social_welfare_submitted = Column(Boolean, default=False, nullable=False)
+    disaster_submitted = Column(Boolean, default=False, nullable=False)
+    education_submitted = Column(Boolean, default=False, nullable=False)
+    business_permits_submitted = Column(Boolean, default=False, nullable=False)
     is_complete = Column(Boolean, default=False, nullable=False)
     completed_at = Column(DateTime, nullable=True)
 

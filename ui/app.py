@@ -174,16 +174,36 @@ class App(ctk.CTk):
         self._navigate("dashboard")
         self._sidebar.set_active("dashboard")
 
+    # Views safe to keep cached (no/few CTkComboBox dropdowns).
+    # Dropdown-heavy views are destroyed on navigate to free OS menu handles.
+    _CACHEABLE_VIEWS = {
+        "dashboard", "barangays", "notifications", "users",
+        "audit_log", "system",
+    }
+
     def _navigate(self, view_key: str):
         if self._current_view:
-            self._current_view.pack_forget()
+            current_key = None
+            for k, v in self._views_cache.items():
+                if v is self._current_view:
+                    current_key = k
+                    break
+            if current_key and current_key in self._CACHEABLE_VIEWS:
+                self._current_view.pack_forget()
+            else:
+                # Destroy dropdown-heavy views to free OS menu handles
+                self._current_view.destroy()
+                if current_key:
+                    del self._views_cache[current_key]
+            self._current_view = None
 
-        if view_key not in self._views_cache:
+        if view_key in self._views_cache:
+            view = self._views_cache[view_key]
+        else:
             view = self._create_view(view_key)
             if view:
                 self._views_cache[view_key] = view
 
-        view = self._views_cache.get(view_key)
         if view:
             view.pack(fill="both", expand=True)
             self._current_view = view
@@ -215,6 +235,18 @@ class App(ctk.CTk):
         elif view_key == "crime":
             from ui.views.crime_view import CrimeView
             return CrimeView(self._content_frame)
+        elif view_key == "health":
+            from ui.views.health_view import HealthView
+            return HealthView(self._content_frame)
+        elif view_key == "disaster":
+            from ui.views.disaster_view import DisasterView
+            return DisasterView(self._content_frame)
+        elif view_key == "education":
+            from ui.views.education_view import EducationView
+            return EducationView(self._content_frame)
+        elif view_key == "business_permits":
+            from ui.views.business_permit_view import BusinessPermitView
+            return BusinessPermitView(self._content_frame)
         elif view_key == "action_plans":
             from ui.views.action_plan_view import ActionPlanView
             return ActionPlanView(self._content_frame)
@@ -243,11 +275,20 @@ class App(ctk.CTk):
 
     def _open_barangay_profile(self, barangay_data: dict):
         if self._current_view:
-            self._current_view.pack_forget()
+            current_key = None
+            for k, v in self._views_cache.items():
+                if v is self._current_view:
+                    current_key = k
+                    break
+            self._current_view.destroy()
+            if current_key:
+                del self._views_cache[current_key]
+            self._current_view = None
 
         cache_key = f"profile_{barangay_data['id']}"
         if cache_key in self._views_cache:
             self._views_cache[cache_key].destroy()
+            del self._views_cache[cache_key]
 
         from ui.views.barangay_profile_view import BarangayProfileView
         view = BarangayProfileView(

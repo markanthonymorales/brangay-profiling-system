@@ -12,7 +12,7 @@ Run: python -m database.real_data
 import logging
 import random
 import math
-from datetime import date
+from datetime import date, datetime
 from database.db import get_session, init_db
 from database.models import Barangay, District
 from services.population_service import save_population_record
@@ -22,6 +22,13 @@ from services.infrastructure_service import save_utility_record, save_waste_reco
 from services.community_service import save_food_source, save_government_facility, save_religious_demographic
 from services.crime_service import save_crime_incident, save_traffic_incident
 from services.user_service import create_user
+from services.health_service import save_health_statistics
+from services.social_welfare_service import save_social_welfare_data
+from services.disaster_service import (
+    save_disaster_risk_profile, save_disaster_incident, save_emergency_resource
+)
+from services.education_service import save_education_statistics
+from services.business_permit_service import save_business_permit
 
 logger = logging.getLogger(__name__)
 
@@ -147,6 +154,34 @@ BUSINESS_TEMPLATES = [
     ("Grocery Store", "retail"), ("Gas Station", "retail"),
 ]
 
+# ── Milestone 3: Department Data Constants ───────────────────
+
+DISASTER_TYPE_WEIGHTS = {
+    "flood": 0.35, "fire": 0.20, "typhoon": 0.15,
+    "landslide": 0.12, "earthquake": 0.08, "storm_surge": 0.10,
+}
+
+RESOURCE_TEMPLATES = [
+    ("Emergency Food Packs", "food", "packs"),
+    ("Drinking Water Supply", "water", "liters"),
+    ("First Aid Kits", "medicine", "boxes"),
+    ("Medical Supplies", "medicine", "boxes"),
+    ("Emergency Shelter Kits", "shelter", "units"),
+    ("Rescue Equipment", "equipment", "units"),
+    ("Blankets and Mats", "shelter", "packs"),
+    ("Water Purification Tablets", "water", "boxes"),
+]
+
+PERMIT_BUSINESS_TEMPLATES = [
+    ("Sari-Sari Store", "retail"), ("Restaurant", "food"), ("Bakeshop", "food"),
+    ("Hardware Supply", "retail"), ("Pharmacy", "retail"), ("Water Station", "services"),
+    ("Beauty Salon", "services"), ("Vulcanizing Shop", "services"),
+    ("Internet Cafe", "services"), ("Laundry Shop", "services"),
+    ("Rice Mill", "manufacturing"), ("Construction Supply", "construction"),
+    ("Transport Service", "transportation"), ("Real Estate", "real_estate"),
+    ("Money Lending", "finance"), ("Farm Supply", "agriculture"),
+]
+
 
 def _find_population(brgy_name: str) -> int | None:
     """Match barangay name from seed to census data."""
@@ -212,6 +247,67 @@ def seed_real_data(skip_init=False):
 
         print(f"\nReal data seeded for all {len(all_barangays)} barangays.")
         print("Data sources: PSA 2020 Census, COMELEC 2025, PNP-DCPO 2024-2025, Wikipedia")
+
+        # ── Seed Department Data Sync records ────────────────────────
+        from database.models import DepartmentDataSync
+        print("Seeding DepartmentDataSync records...")
+        sync_session = get_session()
+        try:
+            departments = ["health", "social_welfare", "disaster", "education", "business_permits"]
+            for brgy in all_barangays:
+                for dept in departments:
+                    sync = DepartmentDataSync(
+                        department_name=dept,
+                        barangay_id=brgy.id,
+                        last_synced=datetime.utcnow(),
+                        sync_status="synced",
+                        record_count=random.randint(2, 30),
+                        synced_by=user_id,
+                    )
+                    sync_session.add(sync)
+            sync_session.commit()
+            print(f"  DepartmentDataSync: {len(all_barangays) * len(departments)} records seeded")
+        except Exception as e:
+            sync_session.rollback()
+            print(f"  DepartmentDataSync seed error: {e}")
+        finally:
+            sync_session.close()
+
+        # ── Seed Cross-Department Alert samples ──────────────────────
+        from database.models import CrossDepartmentAlert
+        print("Seeding CrossDepartmentAlert samples...")
+        alert_session = get_session()
+        try:
+            alert_types = [
+                ("disease_poverty_correlation", "warning", "Disease-Poverty Alert"),
+                ("disaster_health_impact", "critical", "Disaster-Health Crisis"),
+                ("education_poverty_gap", "warning", "Education-Poverty Gap"),
+                ("resource_shortage", "critical", "Resource Shortage Alert"),
+                ("business_disaster_impact", "warning", "Business-Disaster Impact"),
+            ]
+            sample_brgys = random.sample(list(all_barangays), min(25, len(all_barangays)))
+            for i, brgy in enumerate(sample_brgys):
+                alert_type, severity, title_prefix = random.choice(alert_types)
+                is_resolved = random.random() < 0.60
+                alert = CrossDepartmentAlert(
+                    barangay_id=brgy.id,
+                    alert_type=alert_type,
+                    severity=severity,
+                    title=f"{title_prefix}: {brgy.name}",
+                    message=f"Cross-department threshold triggered for Brgy. {brgy.name}",
+                    source_tables='["health_statistics", "income_data"]',
+                    is_resolved=is_resolved,
+                    resolved_by=user_id if is_resolved else None,
+                    resolved_at=datetime.utcnow() if is_resolved else None,
+                )
+                alert_session.add(alert)
+            alert_session.commit()
+            print(f"  CrossDepartmentAlert: {len(sample_brgys)} records seeded")
+        except Exception as e:
+            alert_session.rollback()
+            print(f"  CrossDepartmentAlert seed error: {e}")
+        finally:
+            alert_session.close()
 
     except Exception as e:
         logger.error(f"Real data seed failed: {e}")
@@ -451,6 +547,171 @@ def _seed_barangay(barangay_id: int, name: str, pop_2020: int, district_name: st
             "date_occurred": date(year, month, random.randint(1, 28)),
             "status": random.choices(["reported", "under_investigation", "resolved"], weights=[20, 35, 45])[0],
             "description": f"Traffic incident at Brgy. {name}",
+        }, user_id)
+
+    # ── Health Statistics (2023, 2025) ───────────────────────────
+    for year in [2023, 2025]:
+        # Disease rates proportional to population
+        dengue_rate = random.uniform(2, 8) / 10000
+        tb_rate = random.uniform(3, 6) / 10000
+        covid_rate = random.uniform(1, 3) / 10000
+        diarrhea_rate = random.uniform(5, 12) / 10000
+        pneumonia_rate = random.uniform(2, 5) / 10000
+        hypertension_rate = random.uniform(15, 30) / 10000 if is_urban_core else random.uniform(10, 20) / 10000
+        diabetes_rate = random.uniform(8, 15) / 10000
+
+        save_health_statistics(barangay_id, year, {
+            "dengue_cases": int(pop_latest * dengue_rate),
+            "tuberculosis_cases": int(pop_latest * tb_rate),
+            "covid_cases": int(pop_latest * covid_rate),
+            "diarrhea_cases": int(pop_latest * diarrhea_rate),
+            "pneumonia_cases": int(pop_latest * pneumonia_rate),
+            "hypertension_cases": int(pop_latest * hypertension_rate),
+            "diabetes_cases": int(pop_latest * diabetes_rate),
+            "other_disease_cases": random.randint(0, max(1, int(pop_latest * 0.0005))),
+            "vaccination_coverage_pct": round(random.uniform(80, 97) if is_urban_core else random.uniform(70, 90), 1),
+            "hospital_count": 1 if pop_latest > 40000 and random.random() > 0.5 else 0,
+            "clinic_count": max(1, int(pop_latest / 15000) + random.randint(0, 1)),
+            "health_worker_count": max(1, int(pop_latest / 3000) + random.randint(0, 2)),
+            "maternal_mortality": random.choices([0, 0, 0, 1, 2], weights=[60, 20, 10, 8, 2])[0],
+            "infant_mortality": random.choices([0, 0, 1, 2, 3], weights=[40, 25, 20, 10, 5])[0],
+            "malnutrition_rate": round(random.uniform(3, 8) if is_urban_core else random.uniform(6, 15), 1),
+        }, user_id)
+
+    # ── Social Welfare Data (2023, 2025) ─────────────────────────
+    for year in [2023, 2025]:
+        fourps_pct = random.uniform(0.08, 0.18) if not is_urban_core else random.uniform(0.03, 0.10)
+        senior_pct = random.uniform(0.07, 0.10)
+        pwd_pct = random.uniform(0.015, 0.03)
+        solo_parent_pct = random.uniform(0.02, 0.05)
+
+        save_social_welfare_data(barangay_id, year, {
+            "fourps_beneficiaries": int(households * fourps_pct),
+            "senior_citizen_count": int(pop_latest * senior_pct),
+            "pwd_count": int(pop_latest * pwd_pct),
+            "solo_parent_count": int(households * solo_parent_pct),
+            "indigent_families": int(households * random.uniform(0.03, 0.12)),
+            "nutrition_program_beneficiaries": int(pop_latest * random.uniform(0.02, 0.06)),
+        }, user_id)
+
+    # ── Disaster Risk Profile (2025) ─────────────────────────────
+    # Coastal/lowland = flood-prone; upland = landslide-prone; dense urban = fire risk
+    is_coastal = random.random() < 0.15
+    is_upland = random.random() < 0.25 and not is_coastal
+    save_disaster_risk_profile(barangay_id, 2025, {
+        "flood_prone": is_coastal or random.random() < 0.30,
+        "landslide_prone": is_upland or random.random() < 0.10,
+        "fire_risk_level": "high" if is_urban_core and random.random() < 0.3 else random.choice(["low", "medium"]),
+        "earthquake_risk": random.choice(["medium", "medium", "high"]),
+        "storm_surge_risk": "high" if is_coastal else random.choice(["low", "low", "medium"]),
+        "evacuation_center_count": random.randint(1, 3),
+        "evacuation_capacity": random.randint(200, 2000),
+    }, user_id)
+
+    # ── Disaster Incidents (2024-2025) ───────────────────────────
+    disaster_count = random.randint(0, 4) if is_coastal or is_upland else random.randint(0, 2)
+    for _ in range(disaster_count):
+        r = random.random()
+        cumulative = 0
+        d_type = "flood"
+        for dt, prob in DISASTER_TYPE_WEIGHTS.items():
+            cumulative += prob
+            if r <= cumulative:
+                d_type = dt
+                break
+
+        year = 2025 if random.random() < 0.6 else 2024
+        # Floods peak Jun-Nov, typhoons Sep-Dec
+        if d_type in ("flood", "storm_surge"):
+            month = random.choice([6, 7, 8, 9, 10, 11])
+        elif d_type == "typhoon":
+            month = random.choice([9, 10, 11, 12])
+        else:
+            month = random.randint(1, 12)
+
+        save_disaster_incident(barangay_id, {
+            "disaster_type": d_type,
+            "severity": random.choices(["low", "medium", "high", "critical"], weights=[30, 35, 25, 10])[0],
+            "date_occurred": date(year, month, random.randint(1, 28)),
+            "affected_families": random.randint(5, max(10, int(households * 0.05))),
+            "casualties": random.choices([0, 0, 0, 1, 2], weights=[70, 15, 8, 5, 2])[0],
+            "damages_estimated": round(random.uniform(50000, 5000000), 2),
+            "status": random.choices(["reported", "responding", "resolved", "recovery"], weights=[10, 15, 50, 25])[0],
+            "response_team": random.choice(["CDRRMO", "BFP", "PNP", "Barangay DRRM", "Red Cross"]),
+            "description": f"{d_type.capitalize()} incident in Brgy. {name}",
+        }, user_id)
+
+    # ── Emergency Resources ──────────────────────────────────────
+    num_resources = random.randint(3, 8)
+    for i in range(num_resources):
+        template = random.choice(RESOURCE_TEMPLATES)
+        restock = date(2025, random.randint(1, 6), random.randint(1, 28))
+        months_until_expiry = random.randint(6, 18)
+        expiry = date(restock.year + (restock.month + months_until_expiry - 1) // 12,
+                      (restock.month + months_until_expiry - 1) % 12 + 1,
+                      min(restock.day, 28))
+        # ~10% already expired
+        if random.random() < 0.10:
+            expiry = date(2025, random.randint(1, 3), random.randint(1, 28))
+
+        save_emergency_resource(barangay_id, {
+            "resource_type": template[1],
+            "name": template[0],
+            "quantity": round(random.uniform(10, 500) * (pop_latest / 10000), 0),
+            "unit": template[2],
+            "location_description": f"Brgy. {name} Evacuation Center",
+            "last_restocked": restock,
+            "expiry_date": expiry,
+        }, user_id)
+
+    # ── Education Statistics (2023, 2025) ────────────────────────
+    for year in [2023, 2025]:
+        enrollee_pct = random.uniform(0.15, 0.25)
+        total_enrollees = int(pop_latest * enrollee_pct)
+        elem_pct = random.uniform(0.50, 0.60)
+        hs_pct = random.uniform(0.30, 0.38)
+        col_pct = 1 - elem_pct - hs_pct if is_urban_core else random.uniform(0, 0.05)
+
+        save_education_statistics(barangay_id, year, {
+            "total_enrollees": total_enrollees,
+            "elementary_count": int(total_enrollees * elem_pct),
+            "highschool_count": int(total_enrollees * hs_pct),
+            "college_count": int(total_enrollees * max(0, col_pct)),
+            "out_of_school_youth": int(pop_latest * random.uniform(0.02, 0.08)),
+            "literacy_rate": round(random.uniform(95, 99) if is_urban_core else random.uniform(90, 97), 1),
+            "school_count": max(1, int(pop_latest / 10000) + random.randint(0, 2)),
+            "teacher_count": max(1, int(total_enrollees / random.uniform(35, 45))),
+            "classroom_count": max(1, int(total_enrollees / random.uniform(40, 50))),
+            "dropout_rate": round(random.uniform(1, 5) if is_urban_core else random.uniform(3, 10), 1),
+        }, user_id)
+
+    # ── Business Permits ─────────────────────────────────────────
+    num_permits = max(3, int(pop_latest / 1500) + random.randint(0, 8))
+    num_permits = min(num_permits, 30)
+    for i in range(num_permits):
+        template = random.choice(PERMIT_BUSINESS_TEMPLATES)
+        issue_year = random.randint(2022, 2025)
+        issue_date = date(issue_year, random.randint(1, 12), random.randint(1, 28))
+        expiry_date = date(issue_year + 1, issue_date.month, min(issue_date.day, 28))
+
+        status = random.choices(["active", "expired", "revoked", "pending"],
+                                weights=[85, 8, 2, 5])[0]
+
+        save_business_permit(barangay_id, {
+            "business_name": f"{template[0]} - {name} #{i+1}",
+            "owner_name": random.choice([
+                "Juan Dela Cruz", "Maria Santos", "Pedro Reyes", "Ana Garcia",
+                "Jose Mendoza", "Rosa Flores", "Antonio Cruz", "Carmen Ramos",
+                "Miguel Torres", "Elena Bautista",
+            ]),
+            "business_type": template[1],
+            "permit_number": f"BP-{issue_year}-{barangay_id:03d}-{i+1:04d}",
+            "date_issued": issue_date,
+            "date_expiry": expiry_date,
+            "status": status,
+            "annual_revenue": round(random.uniform(50000, 5000000), 2),
+            "employee_count": random.randint(1, 50),
+            "address": f"Brgy. {name}, Davao City",
         }, user_id)
 
     # ── Classification ────────────────────────────────────────

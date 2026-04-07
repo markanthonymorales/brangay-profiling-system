@@ -60,19 +60,39 @@ class CrimeView(ctk.CTkFrame):
             font=(FONT_FAMILY, FONT_SIZE_TITLE, "bold"), text_color=TEXT_PRIMARY,
         ).pack(anchor="w", padx=PADDING_LARGE, pady=(PADDING_LARGE, PADDING_NORMAL))
 
-        self._tabview = ctk.CTkTabview(self, fg_color=CARD_BG, corner_radius=12)
+        self._tabview = ctk.CTkTabview(self, fg_color=CARD_BG, corner_radius=12,
+                                        command=self._on_tab_change)
         self._tabview.pack(fill="both", expand=True, padx=PADDING_LARGE, pady=(0, PADDING_LARGE))
 
+        self._built_tabs = set()
+
+        self._tabview.add("Crime Incidents")
+        self._tabview.add("Traffic Incidents")
+        self._tabview.add("Crime Overview")
+        self._tabview.add("High-Risk Areas")
+        self._tabview.add("Forecast")
+
         self._build_crime_incidents_tab()
-        self._build_traffic_incidents_tab()
-        self._build_crime_overview_tab()
-        self._build_high_risk_tab()
-        self._build_forecast_tab()
+        self._built_tabs.add("Crime Incidents")
+
+    def _on_tab_change(self):
+        current = self._tabview.get()
+        if current in self._built_tabs:
+            return
+        self._built_tabs.add(current)
+        if current == "Traffic Incidents":
+            self._build_traffic_incidents_tab()
+        elif current == "Crime Overview":
+            self._build_crime_overview_tab()
+        elif current == "High-Risk Areas":
+            self._build_high_risk_tab()
+        elif current == "Forecast":
+            self._build_forecast_tab()
 
     # ── Tab 1: Crime Incidents ────────────────────────────────
 
     def _build_crime_incidents_tab(self):
-        tab = self._tabview.add("Crime Incidents")
+        tab = self._tabview.tab("Crime Incidents")
 
         controls = ctk.CTkFrame(tab, fg_color="transparent")
         controls.pack(fill="x", padx=PADDING_NORMAL, pady=(PADDING_NORMAL, 5))
@@ -155,7 +175,7 @@ class CrimeView(ctk.CTkFrame):
     # ── Tab 2: Traffic Incidents ──────────────────────────────
 
     def _build_traffic_incidents_tab(self):
-        tab = self._tabview.add("Traffic Incidents")
+        tab = self._tabview.tab("Traffic Incidents")
 
         controls = ctk.CTkFrame(tab, fg_color="transparent")
         controls.pack(fill="x", padx=PADDING_NORMAL, pady=(PADDING_NORMAL, 5))
@@ -390,7 +410,7 @@ class CrimeView(ctk.CTkFrame):
     # ── Tab 3: Crime Overview ─────────────────────────────────
 
     def _build_crime_overview_tab(self):
-        tab = self._tabview.add("Crime Overview")
+        tab = self._tabview.tab("Crime Overview")
 
         controls = ctk.CTkFrame(tab, fg_color="transparent")
         controls.pack(fill="x", padx=PADDING_NORMAL, pady=(PADDING_NORMAL, 5))
@@ -486,7 +506,7 @@ class CrimeView(ctk.CTkFrame):
     # ── Tab 4: High-Risk Areas ────────────────────────────────
 
     def _build_high_risk_tab(self):
-        tab = self._tabview.add("High-Risk Areas")
+        tab = self._tabview.tab("High-Risk Areas")
 
         controls = ctk.CTkFrame(tab, fg_color="transparent")
         controls.pack(fill="x", padx=PADDING_NORMAL, pady=(PADDING_NORMAL, 5))
@@ -523,7 +543,7 @@ class CrimeView(ctk.CTkFrame):
     # ── Tab 5: Forecast ───────────────────────────────────────
 
     def _build_forecast_tab(self):
-        tab = self._tabview.add("Forecast")
+        tab = self._tabview.tab("Forecast")
 
         controls = ctk.CTkFrame(tab, fg_color="transparent")
         controls.pack(fill="x", padx=PADDING_NORMAL, pady=(PADDING_NORMAL, 5))

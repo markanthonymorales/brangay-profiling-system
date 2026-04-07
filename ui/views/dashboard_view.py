@@ -13,6 +13,7 @@ from services.report_service import get_dashboard_stats, get_district_overview
 from services.analytics_service import get_population_by_district
 from services.audit_service import get_recent_activity
 from services.submission_service import get_pending_count
+from services.cross_department_service import get_cross_department_kpis, get_cross_department_alerts
 
 
 class DashboardView(ctk.CTkFrame):
@@ -41,6 +42,9 @@ class DashboardView(ctk.CTkFrame):
             ("total_households", "Total Households", "\U0001F3E0", WARNING_COLOR),
             ("active_users", "Active Users", "\U0001F464", "#7B1FA2"),
             ("pending_submissions", "Pending Submissions", "\U0001F4E5", "#E65100"),
+            ("cross_dept_alerts", "Dept. Alerts", "\U0001F6A8", "#D32F2F"),
+            ("synced_today", "Synced Today", "\U00002705", "#388E3C"),
+            ("stale_warnings", "Stale Data", "\U000026A0", "#F57C00"),
         ]
 
         for i, (key, title, icon, color) in enumerate(card_configs):
@@ -112,6 +116,18 @@ class DashboardView(ctk.CTkFrame):
             font=(FONT_FAMILY, FONT_SIZE_SMALL), text_color=TEXT_SECONDARY,
         )
         self._compliance_label.pack(anchor="w", padx=PADDING_NORMAL, pady=(0, PADDING_NORMAL))
+
+        # Cross-department alerts
+        alerts_card = ctk.CTkFrame(self, fg_color=CARD_BG, corner_radius=12)
+        alerts_card.pack(fill="x", padx=PADDING_LARGE, pady=(0, PADDING_NORMAL))
+
+        ctk.CTkLabel(
+            alerts_card, text="Cross-Department Alerts",
+            font=(FONT_FAMILY, 14, "bold"), text_color=TEXT_PRIMARY,
+        ).pack(anchor="w", padx=PADDING_NORMAL, pady=(PADDING_NORMAL, 5))
+
+        self._alerts_frame = ctk.CTkScrollableFrame(alerts_card, fg_color="transparent", height=120)
+        self._alerts_frame.pack(fill="x", padx=PADDING_NORMAL, pady=(0, PADDING_NORMAL))
 
     def refresh(self):
         # Cancel previous timer to avoid unbounded chain
@@ -227,3 +243,42 @@ class DashboardView(ctk.CTkFrame):
             self._anomaly_badge.pack(side="right")
         else:
             self._anomaly_badge.pack_forget()
+
+        # Cross-department KPIs
+        try:
+            kpis = get_cross_department_kpis()
+            alert_count = kpis.get("active_alerts", 0)
+            self._stat_cards["cross_dept_alerts"].set_value(str(alert_count))
+            self._stat_cards["synced_today"].set_value(str(kpis.get("synced_today", 0)))
+            self._stat_cards["stale_warnings"].set_value(str(kpis.get("stale_data_warnings", 0)))
+
+            # Alert summary
+            for widget in self._alerts_frame.winfo_children():
+                widget.destroy()
+
+            alerts = get_cross_department_alerts(unresolved_only=True, limit=10)
+            if not alerts:
+                ctk.CTkLabel(
+                    self._alerts_frame, text="No active cross-department alerts.",
+                    font=(FONT_FAMILY, FONT_SIZE_SMALL), text_color=TEXT_SECONDARY,
+                ).pack(pady=10)
+            else:
+                for a in alerts:
+                    row = ctk.CTkFrame(self._alerts_frame, fg_color="transparent")
+                    row.pack(fill="x", pady=2)
+                    sev_colors = {"critical": "#E53935", "warning": "#FB8C00", "info": "#1E88E5"}
+                    color = sev_colors.get(a["severity"], TEXT_SECONDARY)
+                    ctk.CTkLabel(
+                        row, text=f"[{a['severity'].upper()}]",
+                        font=(FONT_FAMILY, 10, "bold"), text_color=color,
+                    ).pack(side="left", padx=(0, 5))
+                    ctk.CTkLabel(
+                        row, text=f"{a['barangay_name']}: {a['title']}",
+                        font=(FONT_FAMILY, 10), text_color=TEXT_PRIMARY,
+                    ).pack(side="left")
+                    ctk.CTkLabel(
+                        row, text=a["created_at"],
+                        font=(FONT_FAMILY, 10), text_color=TEXT_SECONDARY,
+                    ).pack(side="right")
+        except Exception:
+            pass
