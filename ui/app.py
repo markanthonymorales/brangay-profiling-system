@@ -174,23 +174,37 @@ class App(ctk.CTk):
         self._navigate("dashboard")
         self._sidebar.set_active("dashboard")
 
+    # Views safe to keep cached (no/few CTkComboBox dropdowns).
+    # Dropdown-heavy views are destroyed on navigate to free OS menu handles.
+    _CACHEABLE_VIEWS = {
+        "dashboard", "barangays", "notifications", "users",
+        "audit_log", "system",
+    }
+
     def _navigate(self, view_key: str):
-        # Destroy previous view to free OS menu handles (Windows has a ~2000 limit).
-        # Views with many CTkComboBox dropdowns exhaust this quickly when cached.
         if self._current_view:
             current_key = None
             for k, v in self._views_cache.items():
                 if v is self._current_view:
                     current_key = k
                     break
-            self._current_view.destroy()
-            if current_key:
-                del self._views_cache[current_key]
+            if current_key and current_key in self._CACHEABLE_VIEWS:
+                self._current_view.pack_forget()
+            else:
+                # Destroy dropdown-heavy views to free OS menu handles
+                self._current_view.destroy()
+                if current_key:
+                    del self._views_cache[current_key]
             self._current_view = None
 
-        view = self._create_view(view_key)
+        if view_key in self._views_cache:
+            view = self._views_cache[view_key]
+        else:
+            view = self._create_view(view_key)
+            if view:
+                self._views_cache[view_key] = view
+
         if view:
-            self._views_cache[view_key] = view
             view.pack(fill="both", expand=True)
             self._current_view = view
             if hasattr(view, "refresh"):
