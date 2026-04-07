@@ -6,6 +6,9 @@ from database.models import (
     PopulationRecord, IncomeData, Utility, WasteManagement,
     CrimeIncident, TrafficIncident, FoodSource, GovernmentFacility,
     ReligiousDemographic, Business, LandType, ResidentCategory,
+    HealthStatistics, SocialWelfareData, DisasterRiskProfile,
+    DisasterIncident, EmergencyResource, EducationStatistics,
+    BusinessPermit, DepartmentDataSync, CrossDepartmentAlert,
 )
 
 logger = logging.getLogger(__name__)
@@ -25,6 +28,15 @@ TABLE_MODEL_MAP = {
     "businesses": Business,
     "land_types": LandType,
     "resident_categories": ResidentCategory,
+    "health_statistics": HealthStatistics,
+    "social_welfare_data": SocialWelfareData,
+    "disaster_risk_profiles": DisasterRiskProfile,
+    "disaster_incidents": DisasterIncident,
+    "emergency_resources": EmergencyResource,
+    "education_statistics": EducationStatistics,
+    "business_permits": BusinessPermit,
+    "department_data_sync": DepartmentDataSync,
+    "cross_department_alerts": CrossDepartmentAlert,
 }
 
 
