@@ -215,6 +215,18 @@ class App(ctk.CTk):
         elif view_key == "crime":
             from ui.views.crime_view import CrimeView
             return CrimeView(self._content_frame)
+        elif view_key == "health":
+            from ui.views.health_view import HealthView
+            return HealthView(self._content_frame)
+        elif view_key == "disaster":
+            from ui.views.disaster_view import DisasterView
+            return DisasterView(self._content_frame)
+        elif view_key == "education":
+            from ui.views.education_view import EducationView
+            return EducationView(self._content_frame)
+        elif view_key == "business_permits":
+            from ui.views.business_permit_view import BusinessPermitView
+            return BusinessPermitView(self._content_frame)
         elif view_key == "action_plans":
             from ui.views.action_plan_view import ActionPlanView
             return ActionPlanView(self._content_frame)
