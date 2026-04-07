@@ -175,16 +175,22 @@ class App(ctk.CTk):
         self._sidebar.set_active("dashboard")
 
     def _navigate(self, view_key: str):
+        # Destroy previous view to free OS menu handles (Windows has a ~2000 limit).
+        # Views with many CTkComboBox dropdowns exhaust this quickly when cached.
         if self._current_view:
-            self._current_view.pack_forget()
+            current_key = None
+            for k, v in self._views_cache.items():
+                if v is self._current_view:
+                    current_key = k
+                    break
+            self._current_view.destroy()
+            if current_key:
+                del self._views_cache[current_key]
+            self._current_view = None
 
-        if view_key not in self._views_cache:
-            view = self._create_view(view_key)
-            if view:
-                self._views_cache[view_key] = view
-
-        view = self._views_cache.get(view_key)
+        view = self._create_view(view_key)
         if view:
+            self._views_cache[view_key] = view
             view.pack(fill="both", expand=True)
             self._current_view = view
             if hasattr(view, "refresh"):
@@ -255,11 +261,20 @@ class App(ctk.CTk):
 
     def _open_barangay_profile(self, barangay_data: dict):
         if self._current_view:
-            self._current_view.pack_forget()
+            current_key = None
+            for k, v in self._views_cache.items():
+                if v is self._current_view:
+                    current_key = k
+                    break
+            self._current_view.destroy()
+            if current_key:
+                del self._views_cache[current_key]
+            self._current_view = None
 
         cache_key = f"profile_{barangay_data['id']}"
         if cache_key in self._views_cache:
             self._views_cache[cache_key].destroy()
+            del self._views_cache[cache_key]
 
         from ui.views.barangay_profile_view import BarangayProfileView
         view = BarangayProfileView(
