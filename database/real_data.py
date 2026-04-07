@@ -12,7 +12,7 @@ Run: python -m database.real_data
 import logging
 import random
 import math
-from datetime import date
+from datetime import date, datetime
 from database.db import get_session, init_db
 from database.models import Barangay, District
 from services.population_service import save_population_record
@@ -247,6 +247,67 @@ def seed_real_data(skip_init=False):
 
         print(f"\nReal data seeded for all {len(all_barangays)} barangays.")
         print("Data sources: PSA 2020 Census, COMELEC 2025, PNP-DCPO 2024-2025, Wikipedia")
+
+        # ── Seed Department Data Sync records ────────────────────────
+        from database.models import DepartmentDataSync
+        print("Seeding DepartmentDataSync records...")
+        sync_session = get_session()
+        try:
+            departments = ["health", "social_welfare", "disaster", "education", "business_permits"]
+            for brgy in all_barangays:
+                for dept in departments:
+                    sync = DepartmentDataSync(
+                        department_name=dept,
+                        barangay_id=brgy.id,
+                        last_synced=datetime.utcnow(),
+                        sync_status="synced",
+                        record_count=random.randint(2, 30),
+                        synced_by=user_id,
+                    )
+                    sync_session.add(sync)
+            sync_session.commit()
+            print(f"  DepartmentDataSync: {len(all_barangays) * len(departments)} records seeded")
+        except Exception as e:
+            sync_session.rollback()
+            print(f"  DepartmentDataSync seed error: {e}")
+        finally:
+            sync_session.close()
+
+        # ── Seed Cross-Department Alert samples ──────────────────────
+        from database.models import CrossDepartmentAlert
+        print("Seeding CrossDepartmentAlert samples...")
+        alert_session = get_session()
+        try:
+            alert_types = [
+                ("disease_poverty_correlation", "warning", "Disease-Poverty Alert"),
+                ("disaster_health_impact", "critical", "Disaster-Health Crisis"),
+                ("education_poverty_gap", "warning", "Education-Poverty Gap"),
+                ("resource_shortage", "critical", "Resource Shortage Alert"),
+                ("business_disaster_impact", "warning", "Business-Disaster Impact"),
+            ]
+            sample_brgys = random.sample(list(all_barangays), min(25, len(all_barangays)))
+            for i, brgy in enumerate(sample_brgys):
+                alert_type, severity, title_prefix = random.choice(alert_types)
+                is_resolved = random.random() < 0.60
+                alert = CrossDepartmentAlert(
+                    barangay_id=brgy.id,
+                    alert_type=alert_type,
+                    severity=severity,
+                    title=f"{title_prefix}: {brgy.name}",
+                    message=f"Cross-department threshold triggered for Brgy. {brgy.name}",
+                    source_tables='["health_statistics", "income_data"]',
+                    is_resolved=is_resolved,
+                    resolved_by=user_id if is_resolved else None,
+                    resolved_at=datetime.utcnow() if is_resolved else None,
+                )
+                alert_session.add(alert)
+            alert_session.commit()
+            print(f"  CrossDepartmentAlert: {len(sample_brgys)} records seeded")
+        except Exception as e:
+            alert_session.rollback()
+            print(f"  CrossDepartmentAlert seed error: {e}")
+        finally:
+            alert_session.close()
 
     except Exception as e:
         logger.error(f"Real data seed failed: {e}")

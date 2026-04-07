@@ -43,6 +43,8 @@ class DashboardView(ctk.CTkFrame):
             ("active_users", "Active Users", "\U0001F464", "#7B1FA2"),
             ("pending_submissions", "Pending Submissions", "\U0001F4E5", "#E65100"),
             ("cross_dept_alerts", "Dept. Alerts", "\U0001F6A8", "#D32F2F"),
+            ("synced_today", "Synced Today", "\U00002705", "#388E3C"),
+            ("stale_warnings", "Stale Data", "\U000026A0", "#F57C00"),
         ]
 
         for i, (key, title, icon, color) in enumerate(card_configs):
@@ -247,6 +249,8 @@ class DashboardView(ctk.CTkFrame):
             kpis = get_cross_department_kpis()
             alert_count = kpis.get("active_alerts", 0)
             self._stat_cards["cross_dept_alerts"].set_value(str(alert_count))
+            self._stat_cards["synced_today"].set_value(str(kpis.get("synced_today", 0)))
+            self._stat_cards["stale_warnings"].set_value(str(kpis.get("stale_data_warnings", 0)))
 
             # Alert summary
             for widget in self._alerts_frame.winfo_children():
