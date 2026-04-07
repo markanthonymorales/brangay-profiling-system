@@ -41,6 +41,8 @@ def save_disaster_risk_profile(barangay_id: int, year: int, data: dict,
             session.commit()
             log_action(user_id, "UPDATE", "disaster_risk_profiles", existing.id,
                        old_values=old_values, new_values=data)
+            from services.cross_department_service import on_department_data_saved
+            on_department_data_saved("disaster", barangay_id, year, user_id)
             return True, "Disaster risk profile updated."
         else:
             record = DisasterRiskProfile(barangay_id=barangay_id, year=year, **data)
@@ -48,6 +50,8 @@ def save_disaster_risk_profile(barangay_id: int, year: int, data: dict,
             session.commit()
             log_action(user_id, "CREATE", "disaster_risk_profiles", record.id,
                        new_values={"barangay_id": barangay_id, "year": year, **data})
+            from services.cross_department_service import on_department_data_saved
+            on_department_data_saved("disaster", barangay_id, year, user_id)
             return True, "Disaster risk profile created."
     except Exception as e:
         session.rollback()
@@ -103,6 +107,8 @@ def save_disaster_incident(barangay_id: int, data: dict, user_id: int) -> tuple[
             session.commit()
             log_action(user_id, "UPDATE", "disaster_incidents", record.id,
                        old_values=old_values, new_values=data)
+            from services.cross_department_service import on_department_data_saved
+            on_department_data_saved("disaster", barangay_id, date.today().year, user_id)
             return True, "Disaster incident updated."
         else:
             record = DisasterIncident(barangay_id=barangay_id, **data)
@@ -110,6 +116,8 @@ def save_disaster_incident(barangay_id: int, data: dict, user_id: int) -> tuple[
             session.commit()
             log_action(user_id, "CREATE", "disaster_incidents", record.id,
                        new_values={"barangay_id": barangay_id, **{k: str(v) for k, v in data.items()}})
+            from services.cross_department_service import on_department_data_saved
+            on_department_data_saved("disaster", barangay_id, date.today().year, user_id)
             return True, "Disaster incident recorded."
     except Exception as e:
         session.rollback()

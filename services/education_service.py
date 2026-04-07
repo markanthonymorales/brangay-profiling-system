@@ -29,6 +29,8 @@ def save_education_statistics(barangay_id: int, year: int, data: dict,
             session.commit()
             log_action(user_id, "UPDATE", "education_statistics", existing.id,
                        old_values=old_values, new_values=data)
+            from services.cross_department_service import on_department_data_saved
+            on_department_data_saved("education", barangay_id, year, user_id)
             return True, "Education statistics updated."
         else:
             record = EducationStatistics(barangay_id=barangay_id, year=year, **data)
@@ -36,6 +38,8 @@ def save_education_statistics(barangay_id: int, year: int, data: dict,
             session.commit()
             log_action(user_id, "CREATE", "education_statistics", record.id,
                        new_values={"barangay_id": barangay_id, "year": year, **data})
+            from services.cross_department_service import on_department_data_saved
+            on_department_data_saved("education", barangay_id, year, user_id)
             return True, "Education statistics created."
     except Exception as e:
         session.rollback()

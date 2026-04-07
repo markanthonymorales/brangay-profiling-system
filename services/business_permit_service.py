@@ -34,6 +34,8 @@ def save_business_permit(barangay_id: int, data: dict, user_id: int) -> tuple[bo
             session.commit()
             log_action(user_id, "UPDATE", "business_permits", record.id,
                        old_values=old_values, new_values=data)
+            from services.cross_department_service import on_department_data_saved
+            on_department_data_saved("business_permits", barangay_id, date.today().year, user_id)
             return True, "Business permit updated."
         else:
             record = BusinessPermit(barangay_id=barangay_id, **data)
@@ -41,6 +43,8 @@ def save_business_permit(barangay_id: int, data: dict, user_id: int) -> tuple[bo
             session.commit()
             log_action(user_id, "CREATE", "business_permits", record.id,
                        new_values={"barangay_id": barangay_id, **{k: str(v) for k, v in data.items()}})
+            from services.cross_department_service import on_department_data_saved
+            on_department_data_saved("business_permits", barangay_id, date.today().year, user_id)
             return True, "Business permit recorded."
     except Exception as e:
         session.rollback()

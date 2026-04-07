@@ -31,6 +31,8 @@ def save_health_statistics(barangay_id: int, year: int, data: dict,
             session.commit()
             log_action(user_id, "UPDATE", "health_statistics", existing.id,
                        old_values=old_values, new_values=data)
+            from services.cross_department_service import on_department_data_saved
+            on_department_data_saved("health", barangay_id, year, user_id)
             return True, "Health statistics updated."
         else:
             record = HealthStatistics(barangay_id=barangay_id, year=year, **data)
@@ -38,6 +40,8 @@ def save_health_statistics(barangay_id: int, year: int, data: dict,
             session.commit()
             log_action(user_id, "CREATE", "health_statistics", record.id,
                        new_values={"barangay_id": barangay_id, "year": year, **data})
+            from services.cross_department_service import on_department_data_saved
+            on_department_data_saved("health", barangay_id, year, user_id)
             return True, "Health statistics created."
     except Exception as e:
         session.rollback()

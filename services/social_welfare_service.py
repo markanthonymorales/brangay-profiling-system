@@ -29,6 +29,8 @@ def save_social_welfare_data(barangay_id: int, year: int, data: dict,
             session.commit()
             log_action(user_id, "UPDATE", "social_welfare_data", existing.id,
                        old_values=old_values, new_values=data)
+            from services.cross_department_service import on_department_data_saved
+            on_department_data_saved("social_welfare", barangay_id, year, user_id)
             return True, "Social welfare data updated."
         else:
             record = SocialWelfareData(barangay_id=barangay_id, year=year, **data)
@@ -36,6 +38,8 @@ def save_social_welfare_data(barangay_id: int, year: int, data: dict,
             session.commit()
             log_action(user_id, "CREATE", "social_welfare_data", record.id,
                        new_values={"barangay_id": barangay_id, "year": year, **data})
+            from services.cross_department_service import on_department_data_saved
+            on_department_data_saved("social_welfare", barangay_id, year, user_id)
             return True, "Social welfare data created."
     except Exception as e:
         session.rollback()
