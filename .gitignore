@@ -45,4 +45,5 @@ assets/
 
 # Local Claude config
 .claude/
+.claude/settings.local.json
 .claude.local.md
