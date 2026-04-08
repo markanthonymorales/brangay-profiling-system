@@ -1,3 +1,27 @@
+# README & CLAUDE.md Full Refresh Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Rewrite README.md and CLAUDE.md to accurately reflect the Milestone 3 state of the project (34 models, 29 services, 22 views, cross-department features).
+
+**Architecture:** Two file rewrites. No code changes. README gets shields.io badges, capability-grouped features, and an accurate project tree. CLAUDE.md gets prioritized sections (commands first) with 3 new patterns and no phase history.
+
+**Tech Stack:** Markdown only.
+
+**Spec:** `docs/superpowers/specs/2026-04-08-readme-claudemd-refresh-design.md`
+
+---
+
+### Task 1: Rewrite README.md
+
+**Files:**
+- Modify: `README.md`
+
+- [ ] **Step 1: Write the complete README.md**
+
+Replace the entire contents of `README.md` with the following:
+
+```markdown
 ![Python](https://img.shields.io/badge/Python-3.13-blue)
 ![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey)
 ![License](https://img.shields.io/badge/License-MIT-green)
@@ -97,7 +121,7 @@ python main.py
 
 On first launch, the system automatically:
 
-1. Creates the SQLite database with 33 tables
+1. Creates the SQLite database with 34 tables
 2. Seeds all **182 barangays** with GPS coordinates across 3 congressional districts
 3. Loads **real Davao City data** from PSA 2020 Census (population, demographics)
 4. Populates income, utilities, businesses, crime incidents, health, disaster, education, and business permit data
@@ -148,7 +172,7 @@ brangay-profiling-system/
 ├── LICENSE                          # MIT License
 │
 ├── database/
-│   ├── models.py                    # 33 SQLAlchemy ORM models
+│   ├── models.py                    # 34 SQLAlchemy ORM models
 │   ├── db.py                        # Engine, session factory, init
 │   ├── seed.py                      # Auto-seed on first run
 │   ├── real_data.py                 # Real Davao City data (PSA Census)
@@ -278,3 +302,124 @@ MIT License - see [LICENSE](LICENSE) for details.
 - Commission on Elections (COMELEC) for voter registration data
 - Philippine National Police (PNP) Davao City Police Office for crime statistics
 - City Government of Davao for barangay and district information
+```
+
+- [ ] **Step 2: Verify no stale counts remain**
+
+Run: `grep -n "17 model\|15 business\|13 screen\|17 SQL" README.md`
+Expected: No matches.
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add README.md
+git commit -m "docs: rewrite README with milestone 3 features, accurate counts, and badges"
+```
+
+---
+
+### Task 2: Rewrite CLAUDE.md
+
+**Files:**
+- Modify: `CLAUDE.md`
+
+- [ ] **Step 1: Write the complete CLAUDE.md**
+
+Replace the entire contents of `CLAUDE.md` with the following:
+
+```markdown
+# Davao City Barangay Profiling System
+
+## Commands
+
+```bash
+# Run the application (use Laragon's Python)
+/c/laragon/bin/python/python-3.13/python.exe main.py
+
+# Install dependencies
+/c/laragon/bin/python/python-3.13/python.exe -m pip install -r requirements.txt
+```
+
+## Architecture
+
+Python 3.13 + CustomTkinter desktop app with SQLite (SQLAlchemy ORM).
+
+- `main.py` — Entry point: init DB, launch UI
+- `config.py` — All app constants (DB path, window size, auth config)
+- `database/` — SQLAlchemy models (`models.py`, 34 models), engine/session (`db.py`), seed data (`seed.py`, `real_data.py`)
+- `auth/` — Singleton `AuthManager` for login/session, `roles.py` for RBAC (admin/encoder/viewer)
+- `services/` — 29 service modules: one per data domain, all write ops trigger audit logging
+- `ui/` — CustomTkinter UI: `app.py` (main window + navigation), `components/` (6 reusable widgets), `views/` (22 screens), `dialogs/` (modals)
+- `utils/` — Logging, input validators, CSV export (`export.py`), PDF generation (`pdf_builder.py` using ReportLab)
+- `data/` — SQLite DB file (auto-created), `davao_barangays.json` (seed reference)
+
+## Key Patterns
+
+- **Service layer pattern**: All DB operations go through `services/`. Services handle sessions, audit logging, and return `tuple[bool, str]`.
+- **Audit trail**: Every CREATE/UPDATE/DELETE on data tables is logged via `services/audit_service.py`. Audit records are immutable.
+- **Auth singleton**: `AuthManager()` returns the same instance. Current user stored in memory.
+- **View caching**: `ui/app.py` caches view instances in `_views_cache` dict. Views implement `refresh()` for data reload.
+- **Lazy tab building**: Views with tabs (CTkTabview) defer tab content construction until tab is selected. Reduces dropdown allocation on init.
+- **Cross-department hooks**: Department service save functions call `cross_department_service.on_department_data_saved()` after successful commit. Uses lazy import inside function body to avoid circular dependency.
+- **Navigator caching**: District and barangay dropdown queries are cached to avoid repeated DB hits during view navigation.
+- **Permission guards**: Data entry views block viewer role. Department views hide "Add" buttons for viewers.
+- **Auto-reports**: City-wide PDF auto-generated on startup (if >24h since last). Stored in `data/reports/auto/`.
+- **Action plans**: `services/plan_service.py` generates prioritized recommendations per barangay based on crime trends, utility gaps, poverty rates, and population growth.
+
+## Database
+
+- SQLite with WAL mode and foreign keys enabled (see `database/db.py`)
+- 34 models: 3 core (District, Barangay, User), 14 data domain tables, 9 department tables (health, social welfare, disaster risk/incidents, emergency resources, education, business permits, department sync, cross-department alerts), 8 system tables (audit, notifications, history, submissions, schedules, retry queue, etc.)
+- Auto-seeds 3 districts, 182 barangays, default admin, and all department data on first run
+- Default admin: `admin` / `admin123` (must change password on first login)
+- Unique constraints on `(barangay_id, year)` for all yearly data tables
+
+## Gotchas
+
+- Python path: Use `/c/laragon/bin/python/python-3.13/python.exe`, not system `python` (Windows Store alias doesn't work)
+- DB file created at `data/barangay_profiling.db` — delete it to reset and re-seed
+- `TimestampMixin` uses `datetime.utcnow` — all timestamps are UTC
+- CustomTkinter `CTkComboBox` with `state="readonly"` doesn't allow typing, only selection
+- Cross-department service imports must be lazy (inside function body) to avoid circular imports between department services
+```
+
+- [ ] **Step 2: Verify Phases section is removed and no stale counts remain**
+
+Run: `grep -n "Phase\|17 model\|15 business\|13 screen" CLAUDE.md`
+Expected: No matches.
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add CLAUDE.md
+git commit -m "docs: rewrite CLAUDE.md with prioritized sections and milestone 3 patterns"
+```
+
+---
+
+### Task 3: Verify Both Files
+
+- [ ] **Step 1: Verify README renders valid markdown**
+
+Run: `head -5 README.md`
+Expected: Badge lines starting with `![Python]`.
+
+- [ ] **Step 2: Verify CLAUDE.md starts with Commands**
+
+Run: `head -10 CLAUDE.md`
+Expected: Title, then `## Commands` as first section.
+
+- [ ] **Step 3: Cross-check model count against actual codebase**
+
+Run: `grep -c "^class.*Base)" database/models.py`
+Expected: `34`
+
+- [ ] **Step 4: Cross-check service count**
+
+Run: `ls services/*.py | grep -v __init__ | wc -l`
+Expected: `29`
+
+- [ ] **Step 5: Cross-check view count**
+
+Run: `ls ui/views/*.py | grep -v __init__ | wc -l`
+Expected: `22`
