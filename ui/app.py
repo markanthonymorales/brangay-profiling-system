@@ -247,6 +247,15 @@ class App(ctk.CTk):
         elif view_key == "business_permits":
             from ui.views.business_permit_view import BusinessPermitView
             return BusinessPermitView(self._content_frame)
+        elif view_key == "urban_planning":
+            from ui.views.urban_planning_view import UrbanPlanningView
+            return UrbanPlanningView(self._content_frame)
+        elif view_key == "citizen_portal":
+            from ui.views.citizen_portal_view import CitizenPortalView
+            return CitizenPortalView(self._content_frame)
+        elif view_key == "governance":
+            from ui.views.governance_view import GovernanceView
+            return GovernanceView(self._content_frame)
         elif view_key == "action_plans":
             from ui.views.action_plan_view import ActionPlanView
             return ActionPlanView(self._content_frame)

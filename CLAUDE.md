@@ -16,10 +16,10 @@ Python 3.13 + CustomTkinter desktop app with SQLite (SQLAlchemy ORM).
 
 - `main.py` — Entry point: init DB, launch UI
 - `config.py` — All app constants (DB path, window size, auth config)
-- `database/` — SQLAlchemy models (`models.py`, 33 models), engine/session (`db.py`), seed data (`seed.py`, `real_data.py`)
+- `database/` — SQLAlchemy models (`models.py`, 45 models), engine/session (`db.py`), seed data (`seed.py`, `real_data.py`)
 - `auth/` — Singleton `AuthManager` for login/session, `roles.py` for RBAC (admin/encoder/viewer)
-- `services/` — 29 service modules: one per data domain, all write ops trigger audit logging
-- `ui/` — CustomTkinter UI: `app.py` (main window + navigation), `components/` (6 reusable widgets), `views/` (22 screens), `dialogs/` (modals)
+- `services/` — 36 service modules: one per data domain, all write ops trigger audit logging
+- `ui/` — CustomTkinter UI: `app.py` (main window + navigation), `components/` (6 reusable widgets), `views/` (26 screens), `dialogs/` (modals)
 - `utils/` — Logging, input validators, CSV export (`export.py`), PDF generation (`pdf_builder.py` using ReportLab)
 - `data/` — SQLite DB file (auto-created), `davao_barangays.json` (seed reference)
 
@@ -35,11 +35,18 @@ Python 3.13 + CustomTkinter desktop app with SQLite (SQLAlchemy ORM).
 - **Permission guards**: Data entry views block viewer role. Department views hide "Add" buttons for viewers.
 - **Auto-reports**: City-wide PDF auto-generated on startup (if >24h since last). Stored in `data/reports/auto/`.
 - **Action plans**: `services/plan_service.py` generates prioritized recommendations per barangay based on crime trends, utility gaps, poverty rates, and population growth.
+- **Policy recommendations**: `services/recommendation_engine_service.py` auto-generates recommendations using templates with condition rules, urgency/impact scoring.
+- **Urban planning**: `services/urban_planning_service.py` projects housing, infrastructure, and disaster resilience over 10+ years using logistic growth models and scenario simulation.
+- **Coordinated workflows**: `services/workflow_service.py` assigns multiple departments to incidents (crime/disaster/fire/health/traffic/infrastructure) with status tracking.
+- **Governance tracking**: `services/governance_service.py` records decisions with context, options considered, rationale, and approval workflow.
+- **Citizen portal**: `services/citizen_portal_service.py` accepts public submissions (incidents/concerns/feedback), auto-categorizes via keyword matching, routes to departments.
+- **Resource management**: `services/resource_service.py` tracks equipment, personnel, budget allocations per barangay/department.
+- **Anomaly detection**: `services/anomaly_service.py` continuously monitors data quality and flags inconsistencies.
 
 ## Database
 
 - SQLite with WAL mode and foreign keys enabled (see `database/db.py`)
-- 33 models: 3 core (District, Barangay, User), 14 data domain tables, 9 department tables (health, social welfare, disaster risk/incidents, emergency resources, education, business permits, department sync, cross-department alerts), 8 system tables (audit, notifications, history, submissions, schedules, retry queue, etc.)
+- 45 models: 3 core (District, Barangay, User), 14 data domain tables, 9 department tables (health, social welfare, disaster risk/incidents, emergency resources, education, business permits, department sync, cross-department alerts), 19 system/advanced tables (audit, notifications, history, submissions, schedules, retry queue, policy recommendations, recommendation templates, resource inventory, response workflows, workflow assignments, notification templates, urban development projections, development scenarios, citizen submissions, submission routing rules, decision records, departments, etc.)
 - Auto-seeds 3 districts, 182 barangays, default admin, and all department data on first run
 - Default admin: `admin` / `admin123` (must change password on first login)
 - Unique constraints on `(barangay_id, year)` for all yearly data tables

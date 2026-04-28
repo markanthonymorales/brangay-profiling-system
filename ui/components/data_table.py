@@ -10,13 +10,6 @@ from ui.theme import (
 class DataTable(ctk.CTkFrame):
     def __init__(self, master, columns: list[dict], on_row_click=None,
                  show_pagination=True, show_search=True, page_size=20, **kwargs):
-        """
-        columns: list of dicts with keys: "key", "title", "width" (optional)
-        on_row_click: callback(row_data) when a row is clicked
-        show_pagination: show pagination controls
-        show_search: show search box
-        page_size: default rows per page
-        """
         super().__init__(master, fg_color="transparent", **kwargs)
         self._columns = columns
         self._on_row_click = on_row_click

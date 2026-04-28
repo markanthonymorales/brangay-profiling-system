@@ -39,3 +39,8 @@ data/reports/auto/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+.opencode/
+graphify-out/
+.planning/
+AGENTS.md

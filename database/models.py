@@ -588,3 +588,198 @@ class BarangaySubmissionStatus(TimestampMixin, Base):
     completed_at = Column(DateTime, nullable=True)
 
     barangay = relationship("Barangay")
+
+
+# ── Policy Recommendations (M4) ──────────────────────────────
+
+class PolicyRecommendation(TimestampMixin, Base):
+    __tablename__ = "policy_recommendations"
+    __table_args__ = (
+        UniqueConstraint("barangay_id", "domain", "year", name="uq_policy_rec_barangay_domain_year"),
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    barangay_id = Column(Integer, ForeignKey("barangays.id"), nullable=False)
+    year = Column(Integer, nullable=False)
+    domain = Column(String(50), nullable=False)  # crime/health/disaster/infrastructure/economic
+    priority = Column(String(20), nullable=False, default="medium")  # critical/high/medium/low
+    urgency_score = Column(Float, nullable=True)  # 0-100
+    impact_score = Column(Float, nullable=True)  # 0-100
+    recommendation_text = Column(Text, nullable=False)
+    suggested_actions = Column(Text, nullable=True)  # JSON
+    estimated_cost = Column(Float, nullable=True)
+    resource_requirements = Column(Text, nullable=True)  # JSON
+    status = Column(String(20), nullable=False, default="pending")  # pending/approved/implemented/deferred
+    approved_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    approved_at = Column(DateTime, nullable=True)
+    implemented_at = Column(DateTime, nullable=True)
+
+    barangay = relationship("Barangay")
+    approver = relationship("User")
+
+
+class RecommendationTemplate(TimestampMixin, Base):
+    __tablename__ = "recommendation_templates"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    domain = Column(String(50), nullable=False)
+    category = Column(String(100), nullable=False)
+    condition_rules = Column(Text, nullable=False)  # JSON
+    recommendation_text = Column(Text, nullable=False)
+    suggested_actions = Column(Text, nullable=True)  # JSON
+    default_priority = Column(String(20), nullable=True)
+    default_urgency = Column(Float, nullable=True)
+    default_impact = Column(Float, nullable=True)
+    is_active = Column(Boolean, default=True, nullable=False)
+
+
+class ResourceInventory(TimestampMixin, Base):
+    __tablename__ = "resource_inventory"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    resource_type = Column(String(50), nullable=False)
+    category = Column(String(50), nullable=False)
+    available_quantity = Column(Float, nullable=False)
+    allocated_quantity = Column(Float, nullable=True)
+    unit = Column(String(20), nullable=True)
+    location = Column(String(200), nullable=True)
+    department_id = Column(Integer, ForeignKey("departments.id"), nullable=True)
+    last_updated = Column(DateTime, nullable=True)
+
+    department = relationship("Department")
+
+
+# ── Response Workflows (M4) ───────────────────────────────
+
+class ResponseWorkflow(TimestampMixin, Base):
+    __tablename__ = "response_workflows"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    title = Column(String(200), nullable=False)
+    incident_type = Column(String(50), nullable=False)  # crime/disaster/health/etc
+    incident_id = Column(Integer, nullable=True)
+    severity = Column(String(20), nullable=False, default="medium")
+    status = Column(String(20), nullable=False, default="initiated")  # initiated/assigning/responding/completed
+    initiated_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    initiated_at = Column(DateTime, nullable=True)
+    completed_at = Column(DateTime, nullable=True)
+    description = Column(Text, nullable=True)
+
+    initiator = relationship("User")
+    assignments = relationship("WorkflowAssignment", back_populates="workflow")
+
+
+class WorkflowAssignment(TimestampMixin, Base):
+    __tablename__ = "workflow_assignments"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    workflow_id = Column(Integer, ForeignKey("response_workflows.id"), nullable=False)
+    department_id = Column(Integer, ForeignKey("departments.id"), nullable=False)
+    assigned_at = Column(DateTime, nullable=True)
+    assigned_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    status = Column(String(20), nullable=False, default="assigned")  # assigned/accepted/declined/completed
+    response_notes = Column(Text, nullable=True)
+    completed_at = Column(DateTime, nullable=True)
+
+    workflow = relationship("ResponseWorkflow", back_populates="assignments")
+    department = relationship("Department")
+    assignee = relationship("User")
+
+
+class NotificationTemplate(TimestampMixin, Base):
+    __tablename__ = "notification_templates"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    event_type = Column(String(50), nullable=False)
+    channel = Column(String(20), nullable=False)  # in_app/email/sms
+    template_text = Column(Text, nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
+
+
+# ── Urban Development Planning (M4) ───────────────────────────
+
+class UrbanDevelopmentProjection(TimestampMixin, Base):
+    __tablename__ = "urban_development_projections"
+    __table_args__ = (
+        UniqueConstraint("barangay_id", "projection_type", "target_horizon", name="uq_urban_proj_barangay_type_horizon"),
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    barangay_id = Column(Integer, ForeignKey("barangays.id"), nullable=False)
+    projection_type = Column(String(50), nullable=False)  # housing/infrastructure/disaster/transport
+    baseline_year = Column(Integer, nullable=False)
+    target_horizon = Column(Integer, nullable=False)  # 5/10/20 years
+    baseline_value = Column(Float, nullable=False)
+    projected_values = Column(Text, nullable=False)  # JSON: {year: value}
+    confidence_intervals = Column(Text, nullable=True)  # JSON: {year: {low, high}}
+    assumptions = Column(Text, nullable=True)
+    methodology = Column(String(50), nullable=True)
+
+    barangay = relationship("Barangay")
+
+
+class DevelopmentScenario(TimestampMixin, Base):
+    __tablename__ = "development_scenarios"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(200), nullable=False)
+    description = Column(Text, nullable=True)
+    scenario_type = Column(String(50), nullable=False)  # housing/industrial/transport/environmental
+    parameters = Column(Text, nullable=False)  # JSON
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+
+    creator = relationship("User")
+
+
+# ── Citizen Submissions (M4) ────────────────────────────────
+
+class CitizenSubmission(TimestampMixin, Base):
+    __tablename__ = "citizen_submissions"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    submission_type = Column(String(50), nullable=False)  # incident/concern/feedback
+    category = Column(String(100), nullable=False)
+    description = Column(Text, nullable=False)
+    location = Column(String(200), nullable=True)
+    barangay_id = Column(Integer, ForeignKey("barangays.id"), nullable=True)
+    reporter_name = Column(String(200), nullable=True)
+    reporter_contact = Column(String(50), nullable=True)
+    reporter_email = Column(String(200), nullable=True)
+    tracking_code = Column(String(20), nullable=False, unique=True)
+    status = Column(String(20), nullable=False, default="submitted")  # submitted/acknowledged/routed/resolved/rejected
+    resolved_at = Column(DateTime, nullable=True)
+    resolution_notes = Column(Text, nullable=True)
+
+    barangay = relationship("Barangay")
+
+
+class SubmissionRoutingRule(TimestampMixin, Base):
+    __tablename__ = "submission_routing_rules"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    category = Column(String(100), nullable=False)
+    target_department_id = Column(Integer, ForeignKey("departments.id"), nullable=False)
+    priority = Column(String(20), nullable=True)
+    auto_assign = Column(Boolean, default=True, nullable=False)
+
+    department = relationship("Department")
+
+
+# ── Decision Records (M4) ────────────────────────────────
+
+class DecisionRecord(TimestampMixin, Base):
+    __tablename__ = "decision_records"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    decision_type = Column(String(50), nullable=False)
+    context = Column(Text, nullable=False)  # JSON
+    options_considered = Column(Text, nullable=True)  # JSON
+    chosen_option = Column(Text, nullable=True)  # JSON
+    rationale = Column(Text, nullable=True)
+    decided_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    approved_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    approved_at = Column(DateTime, nullable=True)
+    status = Column(String(20), nullable=False, default="pending")  # pending/approved/implemented/cancelled
+
+    decider = relationship("User", foreign_keys=[decided_by])
+    approver = relationship("User", foreign_keys=[approved_by])
