@@ -15,6 +15,8 @@ A comprehensive desktop application for profiling all **182 barangays** across t
 - **Individual record CRUD** — Crime incidents, traffic incidents, disaster incidents, emergency resources, business permits, businesses
 - **Cross-department data sync** with automated threshold alerts (5 configurable rules)
 - **Submission tracking** per barangay per domain
+- **Citizen portal** — Public submissions (incidents/concerns/feedback) with auto-categorization and routing to departments
+- **Resource management** — Track equipment, personnel, budget allocations per barangay/department
 
 ### Analytics & Dashboard
 - **Dashboard** — Summary stat cards, population-by-district chart, recent activity, cross-department alert summary
@@ -51,6 +53,34 @@ A comprehensive desktop application for profiling all **182 barangays** across t
 - **Categories** — Public safety, infrastructure, community services, economic development
 - **Priority levels** — HIGH (red), MEDIUM (orange), LOW (green)
 - **PDF export** with government branding
+
+### Policy Recommendations (Milestone 4)
+- **Automated recommendation engine** — Generates policy recommendations using configurable templates with condition rules
+- **Urgency & impact scoring** — Each recommendation scored by urgency and impact for prioritization
+- **Domain-specific templates** — Crime, health, disaster, infrastructure, economic domains
+- **Budget allocation estimates** — Recommended budget per policy recommendation
+
+### Urban Planning & Forecasting (Milestone 4)
+- **Long-term projections** — 10+ year housing, infrastructure, and disaster resilience projections
+- **Logistic growth models** — Population-based housing demand projections with carrying capacity
+- **Scenario simulation** — Create and compare development scenarios (optimistic, pessimistic, baseline)
+- **Infrastructure planning** — School, health center, evacuation center capacity projections
+- **Disaster resilience** — Flood-prone area identification, evacuation capacity, response time projections
+
+### Coordinated Response Workflows (Milestone 4)
+- **Multi-agency coordination** — Auto-assign multiple departments to incidents (crime, disaster, fire, health, traffic, infrastructure)
+- **Workflow status tracking** — Initiated → in-progress → resolved workflow lifecycle
+- **Department assignments** — Track which departments assigned to which incidents with status per department
+
+### Governance & Decision Tracking (Milestone 4)
+- **Decision records** — Track every decision with context, options considered, rationale, and outcome
+- **Approval workflow** — Pending → approved → implemented decision lifecycle
+- **Decision audit trail** — Full transparency of who decided what, when, and why
+
+### Anomaly Detection (Milestone 4)
+- **Continuous monitoring** — Automated detection of data quality issues and inconsistencies
+- **Flagged records** — System automatically flags anomalies for review
+- **Data validation** — Continuous validation of incoming data across all domains
 
 ### System Administration
 - **3 user roles** — Admin (full access), Encoder (data entry + reports), Viewer (read-only)
@@ -148,7 +178,7 @@ brangay-profiling-system/
 ├── LICENSE                          # MIT License
 │
 ├── database/
-│   ├── models.py                    # 33 SQLAlchemy ORM models
+│   ├── models.py                    # 45 SQLAlchemy ORM models
 │   ├── db.py                        # Engine, session factory, init
 │   ├── seed.py                      # Auto-seed on first run
 │   ├── real_data.py                 # Real Davao City data (PSA Census)
@@ -158,12 +188,13 @@ brangay-profiling-system/
 │   ├── auth_manager.py              # Login, logout, password hashing
 │   └── roles.py                     # RBAC (admin/encoder/viewer)
 │
-├── services/                        # 29 business logic modules
+├── services/                        # 36 business logic modules
 │   ├── analytics_service.py         # Chart-specific queries
 │   ├── anomaly_service.py           # Data anomaly detection
 │   ├── audit_service.py             # Immutable audit trail
 │   ├── barangay_service.py          # Barangay CRUD & queries
 │   ├── business_permit_service.py   # Business permit CRUD
+│   ├── citizen_portal_service.py    # Public submissions & routing
 │   ├── community_service.py         # Food, facilities, religion CRUD
 │   ├── comparison_service.py        # Barangay comparison queries
 │   ├── crime_service.py             # Crime & traffic CRUD + forecasting
@@ -173,6 +204,7 @@ brangay-profiling-system/
 │   ├── economic_service.py          # Income & business CRUD
 │   ├── education_service.py         # Education statistics CRUD
 │   ├── forecast_service.py          # Predictive forecasting
+│   ├── governance_service.py        # Decision tracking & approval
 │   ├── health_service.py            # Health statistics CRUD
 │   ├── history_service.py           # Record change history
 │   ├── infrastructure_service.py    # Utilities, land, waste CRUD
@@ -180,14 +212,18 @@ brangay-profiling-system/
 │   ├── notification_service.py      # User notifications
 │   ├── plan_service.py              # Action plan generation
 │   ├── population_service.py        # Population data CRUD
+│   ├── recommendation_engine_service.py # Policy recommendation engine
 │   ├── report_service.py            # Report data aggregation
 │   ├── resident_service.py          # Resident categories CRUD
+│   ├── resource_service.py          # Equipment, personnel, budget tracking
 │   ├── schedule_service.py          # Data collection scheduling
 │   ├── social_welfare_service.py    # Social welfare data CRUD
 │   ├── submission_service.py        # Submission tracking
 │   ├── system_service.py            # Backups, integrity, monitoring
+│   ├── urban_planning_service.py   # Long-term projections & scenarios
 │   ├── user_service.py              # User management
-│   └── validation_service.py        # Input validation rules
+│   ├── validation_service.py        # Input validation rules
+│   └── workflow_service.py          # Coordinated response workflows
 │
 ├── ui/
 │   ├── app.py                       # Main window, navigation, view dispatch
@@ -199,7 +235,7 @@ brangay-profiling-system/
 │   │   ├── search_bar.py            # Search with filters
 │   │   ├── stat_card.py             # Summary metric cards
 │   │   └── chart_widget.py          # Matplotlib embed wrapper
-│   ├── views/                       # 22 screen views
+│   ├── views/                       # 26 screen views
 │   │   ├── login_view.py            # Branded login screen
 │   │   ├── dashboard_view.py        # Summary + charts + alerts
 │   │   ├── barangay_list_view.py    # Barangay directory
@@ -219,9 +255,12 @@ brangay-profiling-system/
 │   │   ├── notification_view.py     # User notifications
 │   │   ├── submissions_view.py      # Submission tracking
 │   │   ├── schedule_view.py         # Data collection schedules
-│   │   ├── user_mgmt_view.py        # User CRUD (admin)
+│   │   ├── user_mgmt_view.py       # User CRUD (admin)
 │   │   ├── audit_log_view.py        # Change history (admin)
-│   │   └── system_view.py           # Monitoring 4 tabs (admin)
+│   │   ├── system_view.py           # Monitoring 4 tabs (admin)
+│   │   ├── urban_planning_view.py  # Long-term projections & scenarios
+│   │   ├── citizen_portal_view.py  # Public submission form
+│   │   └── governance_view.py       # Decision tracking & approval
 │   └── dialogs/
 │       ├── confirm_dialog.py        # Confirmation modal
 │       └── message_dialog.py        # Info/error modal

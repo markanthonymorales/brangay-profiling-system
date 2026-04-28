@@ -40,10 +40,7 @@ data/reports/auto/
 Thumbs.db
 desktop.ini
 
-# Generated assets (logo auto-generated on first run)
-assets/
-
-# Local Claude config
-.claude/
-.claude/settings.local.json
-.claude.local.md
+.opencode/
+graphify-out/
+.planning/
+AGENTS.md

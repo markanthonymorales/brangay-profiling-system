@@ -9,6 +9,11 @@ from database.models import (
     HealthStatistics, SocialWelfareData, DisasterRiskProfile,
     DisasterIncident, EmergencyResource, EducationStatistics,
     BusinessPermit, DepartmentDataSync, CrossDepartmentAlert,
+    PolicyRecommendation, RecommendationTemplate, ResourceInventory,
+    ResponseWorkflow, WorkflowAssignment, NotificationTemplate,
+    UrbanDevelopmentProjection, DevelopmentScenario,
+    CitizenSubmission, SubmissionRoutingRule,
+    DecisionRecord,
 )
 
 logger = logging.getLogger(__name__)
@@ -37,6 +42,16 @@ TABLE_MODEL_MAP = {
     "business_permits": BusinessPermit,
     "department_data_sync": DepartmentDataSync,
     "cross_department_alerts": CrossDepartmentAlert,
+    # Milestone 4 models
+    "policy_recommendations": PolicyRecommendation,
+    "recommendation_templates": RecommendationTemplate,
+    "resource_inventory": ResourceInventory,
+    "response_workflows": ResponseWorkflow,
+    "workflow_assignments": WorkflowAssignment,
+    "urban_development_projections": UrbanDevelopmentProjection,
+    "development_scenarios": DevelopmentScenario,
+    "citizen_submissions": CitizenSubmission,
+    "decision_records": DecisionRecord,
 }
 
 
